@@ -29,7 +29,7 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased dark`}>
         <SidebarProvider>
           <AppSidebar />
-          <main className="w-full p-6">
+          <main className="w-full p-4 sm:p-6 overflow-x-clip">
             <AppHeader />
             {children}
           </main>

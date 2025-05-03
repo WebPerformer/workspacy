@@ -1,17 +1,22 @@
-import { Folder, HandCoins, Gamepad2, ScanSearch } from "lucide-react";
+import { Blend, CircleDollarSign, Gamepad2, BookMarked, Anchor } from "lucide-react";
 
 export const projects = {
     projectsMain: [
         {
-          title: "All Projects",
+          title: "Recent Projects",
           url: "#",
-          icon: Folder,
+          icon: Blend,
           isActive: true,
           items: [
             {
               title: "Financial Tracker",
               url: "#",
-              icon: HandCoins,
+              icon: CircleDollarSign,
+            },
+            {
+              title: "Booking Scheduling",
+              url: "#",
+              icon: BookMarked,
             },
             {
               title: "GameHub",

@@ -70,7 +70,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>Platform</SidebarGroupLabel>
           <SidebarMenu>
             {projects.projectsMain.map((item) => (
               <Collapsible
