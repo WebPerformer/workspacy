@@ -49,7 +49,9 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <Button>Sign In</Button>
+          <Link href="/signin" className="w-full">
+            <Button className="w-full">Sign In</Button>
+          </Link>
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupContent>
@@ -100,7 +102,7 @@ export function AppSidebar() {
                       ))}
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild>
-                          <Link href="#">
+                          <Link href="/projects">
                             <ScanSearch />
                             <span>Explore All</span>
                           </Link>

@@ -26,12 +26,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} antialiased dark`}>
+      <body className={`${inter.className} antialiased dark text-[14px]`}>
         <SidebarProvider>
           <AppSidebar />
           <main className="w-full p-4 sm:p-6 overflow-x-clip">
             <AppHeader />
-            {children}
+            <div className="max-w-[1320px] mx-auto">{children}</div>
           </main>
         </SidebarProvider>
       </body>
