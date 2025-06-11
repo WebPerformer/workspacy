@@ -1,0 +1,196 @@
+import {
+  Blend,
+  CircleDollarSign,
+  BookMarked,
+  Gamepad2,
+  ClipboardList,
+  UtensilsCrossed,
+  Dumbbell,
+  Wallet,
+  PawPrint,
+  Music,
+  Languages,
+  Briefcase,
+  Newspaper,
+  CloudSun,
+  ShoppingCart,
+  PiggyBank,
+} from "lucide-react";
+
+export const projects = {
+  projectsMain: [
+    {
+      title: "Recent Projects",
+      url: "#",
+      icon: Blend,
+      isActive: true,
+      items: [
+        {
+          id: 1,
+          title: "Financial Tracker",
+          url: "/projects/financial-tracker",
+          icon: CircleDollarSign,
+          description:
+            "Track your expenses, income, and financial goals in one place with intuitive charts and analysis.",
+          createdAt: "2024-09-01",
+          updatedAt: "2024-10-19",
+          category: "Finance",
+        },
+        {
+          id: 2,
+          title: "Booking Scheduling",
+          url: "#",
+          icon: BookMarked,
+          description:
+            "Online scheduling system for booking services with an interactive calendar and automatic notifications.",
+          createdAt: "2024-08-15",
+          updatedAt: "2025-05-17",
+          category: "Productivity",
+        },
+        {
+          id: 3,
+          title: "GameHub",
+          url: "#",
+          icon: Gamepad2,
+          description:
+            "A platform that brings together games, news, and gaming communities in one personalized experience.",
+          createdAt: "2024-07-10",
+          updatedAt: "2025-03-19",
+          category: "Entertainment",
+        },
+        {
+          id: 4,
+          title: "Task Manager",
+          url: "#",
+          icon: ClipboardList,
+          description:
+            "Organize tasks, set priorities, and track your productivity with a simple and effective task manager.",
+          createdAt: "2024-07-25",
+          updatedAt: "2025-03-19",
+          category: "Productivity",
+        },
+        {
+          id: 5,
+          title: "Recipe App",
+          url: "#",
+          icon: UtensilsCrossed,
+          description:
+            "Discover and save recipes with step-by-step instructions, videos, and cooking tips.",
+          createdAt: "2024-06-18",
+          updatedAt: "2025-03-19",
+          category: "Lifestyle",
+        },
+        {
+          id: 6,
+          title: "Fitness Tracker",
+          url: "#",
+          icon: Dumbbell,
+          description:
+            "Monitor workouts, track physical progress, and get personalized exercise suggestions.",
+          createdAt: "2024-06-01",
+          updatedAt: "2025-03-19",
+          category: "Health & Fitness",
+        },
+        {
+          id: 7,
+          title: "Crypto Wallet",
+          url: "#",
+          icon: Wallet,
+          description:
+            "Securely manage your cryptocurrencies, view balances, transactions, and market trends.",
+          createdAt: "2024-05-12",
+          updatedAt: "2025-03-19",
+          category: "Finance",
+        },
+        {
+          id: 8,
+          title: "Pet Adoption",
+          url: "#",
+          icon: PawPrint,
+          description:
+            "Find pets for adoption near you with detailed profiles and integrated interest forms.",
+          createdAt: "2024-04-22",
+          updatedAt: "2025-03-19",
+          category: "Social / Community",
+        },
+        {
+          id: 9,
+          title: "Music Streamer",
+          url: "#",
+          icon: Music,
+          description:
+            "Stream music, create custom playlists, and discover new artists with smart recommendations.",
+          createdAt: "2024-04-10",
+          updatedAt: "2025-03-19",
+          category: "Entertainment",
+        },
+        {
+          id: 10,
+          title: "Language Tutor",
+          url: "#",
+          icon: Languages,
+          description:
+            "Learn new languages with interactive lessons, quizzes, and personalized feedback.",
+          createdAt: "2024-03-30",
+          updatedAt: "2025-03-19",
+          category: "Education",
+        },
+        {
+          id: 11,
+          title: "Portfolio Builder",
+          url: "#",
+          icon: Briefcase,
+          description:
+            "Create and customize professional portfolios to showcase your work and experience.",
+          createdAt: "2024-03-01",
+          updatedAt: "2025-03-19",
+          category: "Professional Tools",
+        },
+        {
+          id: 12,
+          title: "News Aggregator",
+          url: "#",
+          icon: Newspaper,
+          description:
+            "Stay updated with real-time news from multiple sources, organized by category and interest.",
+          createdAt: "2024-02-14",
+          updatedAt: "2025-03-19",
+          category: "Media",
+        },
+        {
+          id: 13,
+          title: "Weather App",
+          url: "#",
+          icon: CloudSun,
+          description:
+            "Check current weather conditions, forecasts, and alerts with a clean, user-friendly interface.",
+          createdAt: "2024-01-22",
+          updatedAt: "2025-03-19",
+          category: "Utilities",
+        },
+        {
+          id: 14,
+          title: "E-commerce Store",
+          url: "#",
+          icon: ShoppingCart,
+          description:
+            "A complete e-commerce solution with product listings, shopping cart, and secure checkout.",
+          createdAt: "2023-12-10",
+          updatedAt: "2025-03-19",
+          category: "E-commerce",
+        },
+        {
+          id: 15,
+          title: "Budget Planner",
+          url: "#",
+          icon: PiggyBank,
+          description:
+            "Plan and manage your monthly budget with tracking tools, spending categories, and savings goals.",
+          createdAt: "2023-11-05",
+          updatedAt: "2025-03-19",
+          category: "Finance",
+        },
+      ],
+    },
+  ],
+};
