@@ -1,4 +1,4 @@
-import { LayoutDashboard, Layers } from "lucide-react";
+import { LayoutDashboard, Users } from "lucide-react";
 
 export const sidebar = {
   navMain: [
@@ -8,9 +8,9 @@ export const sidebar = {
       icon: LayoutDashboard,
     },
     {
-      label: "Projects Gallery",
-      href: "/projects",
-      icon: Layers,
+      label: "My Clients",
+      href: "/clients",
+      icon: Users,
     },
   ],
 };

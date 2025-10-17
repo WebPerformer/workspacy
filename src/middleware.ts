@@ -5,25 +5,23 @@ export function middleware(req: NextRequest) {
   const token = req.cookies.get("token")?.value;
   const path = req.nextUrl.pathname;
 
-  if (
-    token &&
-    [
-      "/signin",
-      "/signup",
-      "/forgot-password",
-      "/reset-password",
-      "/one-time-password",
-    ].includes(path)
-  ) {
+  const publicPaths = [
+    "/signin",
+    "/signup",
+    "/forgot-password",
+    "/reset-password",
+    "/one-time-password",
+    "/callback/google",
+  ];
+
+  // Se o usuário NÃO tiver token e tentar acessar qualquer rota que não seja pública → redireciona para /signin
+  if (!token && !publicPaths.some((p) => path.startsWith(p))) {
+    return NextResponse.redirect(new URL("/signin", req.nextUrl.origin));
+  }
+
+  // Se o usuário JÁ estiver logado e tentar acessar uma rota pública → redireciona para /
+  if (token && publicPaths.includes(path)) {
     return NextResponse.redirect(new URL("/", req.nextUrl.origin));
-  }
-
-  if (!token && path.startsWith("/avatar-picker")) {
-    return NextResponse.redirect(new URL("/signin", req.nextUrl.origin));
-  }
-
-  if (!token && path.startsWith("/projects/financial-tracker")) {
-    return NextResponse.redirect(new URL("/signin", req.nextUrl.origin));
   }
 
   // Handle Google OAuth callback
@@ -36,7 +34,6 @@ export function middleware(req: NextRequest) {
 
     const response = NextResponse.redirect(new URL("/", req.url));
 
-    // Set the token cookie
     response.cookies.set({
       name: "token",
       value: googleToken,
@@ -53,14 +50,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/signin",
-    "/signup",
-    "/forgot-password",
-    "/reset-password",
-    "/one-time-password",
-    "/callback/google",
-    "/avatar-picker",
-    "/projects/financial-tracker",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

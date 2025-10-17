@@ -91,16 +91,6 @@ function SignIn() {
           </p>
         </div>
       </div>
-      <Button variant="outline" onClick={handleGoogleSignIn} className="w-full">
-        <Image src={google} alt="google" width={20} height={20} />
-        Sign in with Google
-      </Button>
-      <div className="relative text-center">
-        <div className="h-[1px] bg-border w-full absolute top-1/2 -translate-y-1/2"></div>
-        <div className="text-xs text-muted-foreground bg-muted px-4 relative z-10 w-fit mx-auto">
-          OR
-        </div>
-      </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField
@@ -182,12 +172,6 @@ function SignIn() {
           </div>
         </form>
       </Form>
-      <div className="flex items-center justify-center gap-2">
-        <p className="text-sm text-muted-foreground">Don't have an account?</p>
-        <Link href="/signup" className="text-sm hover:underline">
-          Sign up
-        </Link>
-      </div>
     </section>
   );
 }
