@@ -25,7 +25,7 @@ function AppHeader() {
       <div className="flex items-center justify-between gap-4">
         {isMobile && <SidebarTrigger />}
         {pathname === "/" ? (
-          <p>Dashboard</p>
+          <p>Introduction</p>
         ) : (
           <Breadcrumb>
             <BreadcrumbList>

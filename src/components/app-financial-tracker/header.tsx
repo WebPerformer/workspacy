@@ -10,11 +10,11 @@ function Header() {
         <h3 className="text-lg font-medium">Financial Tracker</h3>
       </div>
       <div className="flex items-center gap-2">
-        <Link href="/projects/financial-tracker/create-invoice">
-          <Button variant="secondary">
-            <Plus />
-            <p className="hidden @[275px]:block text-sm">Create Invoice</p>
-          </Button>
+        <Link href="https://github.com/workspacy/financial-tracker">
+          <Button variant="secondary">Github</Button>
+        </Link>
+        <Link href="https://docs.workspacy.com">
+          <Button variant="secondary">Docs</Button>
         </Link>
       </div>
     </div>

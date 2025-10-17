@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "../ui/button";
-import { ChevronDown, Filter } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { Separator } from "../ui/separator";
-import { invoices } from "@/src/data/invoices";
+import { GetRecentPaidInvoicesRequest } from "@/src/lib/invoices";
 
 type Invoice = {
   invoiceId: string;
@@ -39,26 +39,38 @@ function groupInvoicesByMonth(invoices: Invoice[]) {
 
 function RecentActivity() {
   const [loadMore, setLoadMore] = useState(8);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+
+  useEffect(() => {
+    async function getInvoices() {
+      const { success, data } = await GetRecentPaidInvoicesRequest();
+      if (success) {
+        setInvoices(data);
+      }
+    }
+    getInvoices();
+  }, []);
+
   const groupedInvoices = groupInvoicesByMonth(invoices.slice(0, loadMore));
 
   return (
-    <div className="relative flex flex-col gap-6 bg-card border border-card rounded-lg p-4 flex-1 max-h-[415px] overflow-clip">
-      <div className="flex flex-col gap-6 overflow-y-auto scrollbar-dialog">
+    <div className="relative flex flex-col gap-6 bg-card border border-card rounded-lg p-4 flex-1 max-h-[470px] overflow-clip">
+      <h3 className="text-base font-medium">Recent Activity</h3>
+      <div className="flex flex-col gap-6 overflow-y-auto">
         {Object.entries(groupedInvoices).map(([monthYear, invoices]) => (
           <div key={monthYear}>
             <p className="text-sm font-medium text-muted-foreground mb-2">
               {monthYear}
             </p>
-
             {invoices.map((invoice, index) => (
               <div key={invoice.invoiceId} className="space-y-2 mb-2">
                 <div className="flex items-center justify-between gap-10">
                   <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-lg bg flex items-center justify-center p-2">
+                    <div className="flex items-center justify-center p-2">
                       <img
                         src={invoice.imageUrl}
                         alt={invoice.name}
-                        className="object-cover"
+                        className="w-8 h-8 rounded-lg object-cover"
                       />
                     </div>
                     <div className="flex flex-col">
@@ -73,10 +85,10 @@ function RecentActivity() {
                     </div>
                   </div>
                   <p className="whitespace-nowrap">
-                    {invoice.amount.toLocaleString("pt-BR", {
+                    {new Intl.NumberFormat("pt-BR", {
                       style: "currency",
                       currency: "BRL",
-                    })}
+                    }).format(invoice.amount)}
                   </p>
                 </div>
                 {index < invoices.length - 1 && <Separator />}

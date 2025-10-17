@@ -1,11 +1,25 @@
-import React from "react";
+"use client";
+import React, { useEffect, useState } from "react";
 import { Badge } from "../ui/badge";
 import { TrendingDown, TrendingUp } from "lucide-react";
+import { GetMetricsRequest } from "@/src/lib/invoices";
 
 function Cards() {
   const today = new Date();
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
+
+  const [metrics, setMetrics] = useState<any>(null);
+
+  useEffect(() => {
+    async function getMetrics() {
+      const { success, data } = await GetMetricsRequest();
+      if (success) {
+        setMetrics(data);
+      }
+    }
+    getMetrics();
+  }, []);
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -23,13 +37,28 @@ function Cards() {
             </div>
           </div>
           <div className="flex items-center justify-between w-full flex-1">
-            <p className="text-3xl">R$ 30.234,12</p>
+            <p className="text-3xl">
+              {new Intl.NumberFormat("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              }).format(metrics?.balance.current)}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge className="bg-green-300/20 text-green-500">
-            <TrendingUp size={16} />
-            <p>27.3%</p>
+          <Badge
+            className={`${
+              metrics?.balance.diff > 0
+                ? "bg-green-300/20 text-green-500"
+                : "bg-red-300/20 text-red-500"
+            }`}
+          >
+            {metrics?.balance.diff > 0 ? (
+              <TrendingUp size={16} />
+            ) : (
+              <TrendingDown size={16} />
+            )}
+            <p>{metrics?.balance.diff ? metrics?.balance.diff : "N/A"}%</p>
           </Badge>
           <p className="text-xs text-muted-foreground whitespace-nowrap">
             Compared with last month
@@ -50,13 +79,28 @@ function Cards() {
             </div>
           </div>
           <div className="flex items-center justify-between w-full">
-            <p className="text-3xl">R$ 12.234,12</p>
+            <p className="text-3xl">
+              {new Intl.NumberFormat("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              }).format(metrics?.expense.current)}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge className="bg-green-300/20 text-green-500">
-            <TrendingUp size={16} />
-            <p>08.3%</p>
+          <Badge
+            className={`${
+              metrics?.expense.diff > 0
+                ? "bg-green-300/20 text-green-500"
+                : "bg-red-300/20 text-red-500"
+            }`}
+          >
+            {metrics?.expense.diff > 0 ? (
+              <TrendingUp size={16} />
+            ) : (
+              <TrendingDown size={16} />
+            )}
+            <p>{metrics?.expense.diff ? metrics?.expense.diff : "N/A"}%</p>
           </Badge>
           <p className="text-xs text-muted-foreground whitespace-nowrap">
             Compared with last month
@@ -77,13 +121,28 @@ function Cards() {
             </div>
           </div>
           <div className="flex items-center justify-between w-full">
-            <p className="text-3xl">R$ 23.632,23</p>
+            <p className="text-3xl">
+              {new Intl.NumberFormat("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              }).format(metrics?.income.current)}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge className="bg-red-300/20 text-red-500">
-            <TrendingDown size={16} />
-            <p>02.3%</p>
+          <Badge
+            className={`${
+              metrics?.income.diff > 0
+                ? "bg-green-300/20 text-green-500"
+                : "bg-red-300/20 text-red-500"
+            }`}
+          >
+            {metrics?.income.diff > 0 ? (
+              <TrendingUp size={16} />
+            ) : (
+              <TrendingDown size={16} />
+            )}
+            <p>{metrics?.income.diff ? metrics?.income.diff : "N/A"}%</p>
           </Badge>
           <p className="text-xs text-muted-foreground whitespace-nowrap">
             Compared with last month

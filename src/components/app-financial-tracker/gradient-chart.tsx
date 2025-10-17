@@ -1,13 +1,15 @@
 "use client";
 
-import { TrendingUp } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { useEffect, useState } from "react";
+import { GetInvoicesRequest } from "@/src/lib/invoices";
+import { toast } from "sonner";
+import { Invoice } from "./table";
 
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/src/components/ui/card";
@@ -18,14 +20,6 @@ import {
   ChartTooltipContent,
 } from "@/src/components/ui/chart";
 import { Separator } from "@/src/components/ui/separator";
-const chartData = [
-  { month: "January", income: 1860, expenses: 800 },
-  { month: "February", income: 3050, expenses: 2000 },
-  { month: "March", income: 2370, expenses: 1200 },
-  { month: "April", income: 2730, expenses: 1900 },
-  { month: "May", income: 2090, expenses: 1900 },
-  { month: "June", income: 2140, expenses: 2700 },
-];
 
 const chartConfig = {
   income: {
@@ -39,6 +33,59 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function GradientChart() {
+  const [chartData, setChartData] = useState<
+    Array<{ month: string; income: number; expenses: number }>
+  >([]);
+
+  useEffect(() => {
+    async function fetchInvoices() {
+      const response = await GetInvoicesRequest();
+
+      if (response.success) {
+        // Transform the data to group by month and calculate income/expenses
+        const monthlyData = response.data.reduce(
+          (
+            acc: { [key: string]: { income: number; expenses: number } },
+            invoice: Invoice
+          ) => {
+            const date = new Date(invoice.dueDate);
+            const month = date.toLocaleString("default", { month: "long" });
+
+            if (!acc[month]) {
+              acc[month] = { income: 0, expenses: 0 };
+            }
+
+            if (invoice.type === "income") {
+              acc[month].income += invoice.amount;
+            } else {
+              acc[month].expenses += invoice.amount;
+            }
+
+            return acc;
+          },
+          {}
+        );
+
+        // Convert to array format needed by the chart
+        const formattedData = (
+          Object.entries(monthlyData) as [
+            string,
+            { income: number; expenses: number }
+          ][]
+        ).map(([month, data]) => ({
+          month,
+          income: data.income,
+          expenses: data.expenses,
+        }));
+
+        setChartData(formattedData);
+      } else {
+        toast.error(response.data as string);
+      }
+    }
+    fetchInvoices();
+  }, []);
+
   return (
     <Card className="bg-transparent pb-2 sm:pb-4">
       <CardHeader>

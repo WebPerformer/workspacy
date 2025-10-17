@@ -1,7 +1,7 @@
 "use client";
 
 // React and Next.js hooks
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // Third-party icons
 import {
@@ -16,9 +16,8 @@ import {
   ChevronLeft,
   CheckCircle,
   CircleX,
-  CircleFadingArrowUp,
-  RotateCcw,
   RefreshCw,
+  ChevronRight,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -57,110 +56,152 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Badge } from "../ui/badge";
+import loading from "@/public/images/loading.svg";
+import { toast } from "sonner";
+import {
+  CreateInvoiceRequest,
+  DeleteInvoiceRequest,
+  UpdateInvoiceRequest,
+} from "@/src/lib/invoices";
+import { useRouter } from "next/navigation";
 
 const formSChema = z.object({
   imageUrl: z.string().url().optional(),
-  invoiceName: z.string(),
-  invoiceLink: z.string().url().optional(),
-  invoiceLogin: z.string().optional(),
-  invoicePassword: z.string().optional(),
-  invoiceType: z.enum(["income", "expense"]),
-  invoiceDueDate: z.date(),
-  invoiceAmount: z.number(),
-  invoiceDescription: z.string().optional(),
-  isMonthly: z.boolean(),
-  invoiceStatus: z.string(),
+  name: z.string(),
+  link: z.string().url().optional(),
+  login: z.string().optional(),
+  password: z.string().optional(),
+  type: z.enum(["income", "expense"]),
+  dueDate: z.date(),
+  amount: z.number(),
+  description: z.string().optional(),
+  monthly: z.boolean(),
+  status: z.string(),
 });
 
-type FormSchemaType = z.infer<typeof formSChema>;
-type InvoiceType = FormSchemaType["invoiceType"];
-
-type InvoiceDetailsProps = {
-  title: string;
+type Invoice = {
   invoiceId: string;
-  invoiceName?: string;
-  imageUrl?: string;
-  invoiceLink?: string;
-  dueDate?: Date;
-  monthly?: boolean;
-  amount?: number;
-  description?: string;
-  login?: string;
-  password?: string;
-  type?: InvoiceType;
-  status?: string;
-  createdAt?: Date;
-  isAction?: boolean;
+  createdAt: Date;
+  name: string;
+  imageUrl: string;
+  link: string;
+  dueDate: Date;
+  monthly: boolean;
+  amount: number;
+  description: string;
+  login: string;
+  password: string;
+  type: "income" | "expense";
+  status: "paid" | "unpaid";
 };
 
 function InvoiceDetails({
   title,
-  invoiceId,
-  invoiceName,
-  imageUrl,
-  invoiceLink,
-  dueDate,
-  monthly,
-  amount,
-  description,
-  login,
-  password,
-  type,
-  status,
-  createdAt,
+  invoices,
   isAction,
-}: InvoiceDetailsProps) {
+}: {
+  title: string;
+  invoices: Invoice[];
+  isAction?: boolean;
+}) {
+  const [index, setIndex] = useState(0);
+
   const form = useForm<z.infer<typeof formSChema>>({
     resolver: zodResolver(formSChema),
     defaultValues: {
-      imageUrl: imageUrl || "",
-      invoiceName: invoiceName || "",
-      invoiceLink: invoiceLink || "",
-      invoiceLogin: login || "",
-      invoicePassword: password || "",
-      invoiceType: type || "income",
-      invoiceDueDate: dueDate ? new Date(dueDate) : new Date(),
-      invoiceAmount: amount || 0.0,
-      invoiceDescription: description || "",
-      isMonthly: monthly || false,
-      invoiceStatus: status || "unpaid",
+      ...invoices[0],
+      dueDate: new Date(invoices[0].dueDate),
+      amount: Number(invoices[0].amount),
     },
   });
 
+  useEffect(() => {
+    const currentInvoice = invoices[index];
+    if (currentInvoice) {
+      form.reset({
+        ...currentInvoice,
+        dueDate: new Date(currentInvoice.dueDate),
+        amount: Number(currentInvoice.amount),
+      });
+      setDate(new Date(currentInvoice.dueDate));
+      setDisplayAmount(formatCurrency(Number(currentInvoice.amount)));
+    }
+  }, [index]);
+
+  const router = useRouter();
+
   const formValues = form.watch();
   const [date, setDate] = useState<Date>(
-    dueDate ? new Date(dueDate) : new Date()
+    invoices[index].dueDate ? new Date(invoices[index].dueDate) : new Date()
   );
-  const [detailsOpen, setDetailsOpen] = useState(isAction ? false : true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [displayAmount, setDisplayAmount] = useState("R$ 0,00");
 
   const {
     field: { value, onChange, ...field },
-  } = useController({ name: "invoiceAmount", control: form.control });
+  } = useController({ name: "amount", control: form.control });
 
-  const getFormattedValue = (raw: string | number) => {
-    const onlyDigits = raw?.toString().replace(/\D/g, "") || "0";
-    const number = parseFloat((parseInt(onlyDigits) / 100).toFixed(2));
+  useEffect(() => {
+    const initialValue = form.getValues("amount") || 0;
+    setDisplayAmount(formatCurrency(initialValue));
+  }, []);
 
-    return number.toLocaleString("pt-BR", {
+  const formatCurrency = (value: number) =>
+    value.toLocaleString("pt-BR", {
       style: "currency",
       currency: "BRL",
     });
-  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const numeric = e.target.value.replace(/\D/g, "");
-    onChange(numeric);
+    const raw = e.target.value;
+    const onlyDigits = raw.replace(/\D/g, "") || "0";
+    const number = parseFloat((parseInt(onlyDigits) / 100).toFixed(2));
+
+    form.setValue("amount", number);
+    setDisplayAmount(formatCurrency(number));
   };
 
   const handleDateChange = (newDate: Date | undefined) => {
     if (newDate) {
       setDate(newDate);
-      form.setValue("invoiceDueDate", newDate);
+      form.setValue("dueDate", newDate);
     }
   };
 
-  async function onSubmit(values: z.infer<typeof formSChema>) {
-    console.log(values);
+  async function onSubmitSave(values: z.infer<typeof formSChema>) {
+    setIsLoading(true);
+    const { success, data } = await CreateInvoiceRequest(values);
+    if (success) {
+      toast.success("Invoice created successfully");
+      router.push("/projects/financial-tracker");
+    } else {
+      toast.error(data.message);
+    }
+    setIsLoading(false);
+  }
+
+  async function onSubmitUpdate(values: z.infer<typeof formSChema>) {
+    setIsLoading(true);
+    const { success, data } = await UpdateInvoiceRequest(
+      values,
+      Number(invoices[index].invoiceId)
+    );
+    if (success) {
+      toast.success("Invoice updated successfully");
+    } else {
+      toast.error(data.message);
+    }
+    setIsLoading(false);
+  }
+
+  async function deleteInvoice(invoiceId: string) {
+    const { success, data } = await DeleteInvoiceRequest(invoiceId);
+    if (success) {
+      toast.success("Invoice deleted successfully");
+      router.push("/projects/financial-tracker");
+    } else {
+      toast.error(data.message);
+    }
   }
 
   return (
@@ -172,297 +213,299 @@ function InvoiceDetails({
         </div>
         <div className="flex items-center gap-2">
           {!isAction ? (
-            <Button variant="secondary">
+            <Button
+              variant="secondary"
+              disabled={isLoading}
+              onClick={() => {
+                form.handleSubmit(onSubmitSave)();
+              }}
+            >
               <Save />
               <p className="hidden @[275px]:block text-sm">Save</p>
+              {isLoading && (
+                <img src={loading.src} alt="loading" width={16} height={16} />
+              )}
             </Button>
           ) : (
-            <Button variant="secondary">
-              <RefreshCw />
-              <p className="hidden @[275px]:block text-sm">Update</p>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={() => {
+                  setIndex(index - 1);
+                }}
+                disabled={index === 0}
+              >
+                <ChevronLeft />
+              </Button>
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={() => {
+                  setIndex(index + 1);
+                }}
+                disabled={index === invoices.length - 1}
+              >
+                <ChevronRight />
+              </Button>
+            </div>
           )}
         </div>
       </div>
-      <div
-        className={cn(
-          "grid gap-12",
-          !detailsOpen ? "grid-cols-1 mx-auto w-full max-w-md" : "grid-cols-2"
-        )}
-      >
-        {detailsOpen && (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-medium">Invoice Details</h2>
-              {isAction && (
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  onClick={() => setDetailsOpen(false)}
-                >
-                  <ChevronLeft />
-                </Button>
-              )}
-            </div>
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-6"
-              >
-                <FormField
-                  control={form.control}
-                  name="invoiceName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Invoice Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="imageUrl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Image URL</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="invoiceLink"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Invoice Link</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="flex items-center gap-4">
-                  <FormField
-                    control={form.control}
-                    name="invoiceDueDate"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormLabel>Due Date</FormLabel>
-                        <FormControl>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "justify-start text-left font-normal",
-                                  !date && "text-muted-foreground"
-                                )}
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {date ? (
-                                  format(date, "PPP")
-                                ) : (
-                                  <span>Pick a date</span>
-                                )}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent
-                              className="w-auto p-0"
-                              align="start"
-                            >
-                              <Calendar
-                                mode="single"
-                                selected={date}
-                                onSelect={handleDateChange}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="isMonthly"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Plan</FormLabel>
-                        <FormControl>
-                          <div className="flex items-center gap-2 h-9 whitespace-nowrap">
-                            <Switch
-                              id="isMonthly"
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                            <Label htmlFor="isMonthly">Monthly</Label>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="relative">
-                  <FormField
-                    control={form.control}
-                    name="invoiceAmount"
-                    render={({ field }) => (
-                      <FormItem className="col-span-2">
-                        <FormLabel>Amount</FormLabel>
-                        <FormControl>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              {...field}
-                              onChange={handleChange}
-                              value={getFormattedValue(field.value)}
-                              inputMode="numeric"
-                              placeholder="0,00"
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="absolute right-0 bottom-0">
-                    <FormField
-                      control={form.control}
-                      name="invoiceType"
-                      render={({ field }) => (
-                        <FormItem className="col-span-1">
-                          <FormControl>
-                            <ToggleGroup
-                              size="sm"
-                              type="single"
-                              value={field.value}
-                              onValueChange={() => {
-                                const newValue =
-                                  field.value === "income"
-                                    ? "expense"
-                                    : "income";
-                                form.setValue("invoiceType", newValue);
-                              }}
-                              className="mb-1 mr-1"
-                            >
-                              <ToggleGroupItem
-                                value={field.value}
-                                className={cn(
-                                  "data-[state=on]:text-chart-1 data-[state=on]:bg-chart-1/20",
-                                  field.value === "expense" &&
-                                    "data-[state=on]:text-chart-2 data-[state=on]:bg-chart-2/20"
-                                )}
-                              >
-                                {field.value === "income"
-                                  ? "Income"
-                                  : "Expense"}
-                              </ToggleGroupItem>
-                            </ToggleGroup>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-                <FormField
-                  control={form.control}
-                  name="invoiceDescription"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="flex items-center gap-4">
-                  <FormField
-                    control={form.control}
-                    name="invoiceLogin"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Login</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="invoicePassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="invoiceStatus"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <FormControl>
-                          <Select
-                            value={field.value}
-                            onValueChange={field.onChange}
-                          >
-                            <FormItem>
-                              <FormControl>
-                                <div>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select a status" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="paid">Paid</SelectItem>
-                                    <SelectItem value="unpaid">
-                                      Unpaid
-                                    </SelectItem>
-                                  </SelectContent>
-                                </div>
-                              </FormControl>
-                            </FormItem>
-                          </Select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </form>
-            </Form>
-          </div>
-        )}
+      <div className="grid grid-cols-2 gap-12">
         <div className="flex flex-col gap-4">
-          {detailsOpen && <h2 className="text-lg font-medium">Preview</h2>}
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-medium">Invoice Details</h2>
+          </div>
+          <Form {...form}>
+            <form className="space-y-6">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Invoice Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="imageUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Image URL</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="link"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Invoice Link</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="flex items-center gap-4">
+                <FormField
+                  control={form.control}
+                  name="dueDate"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel>Due Date</FormLabel>
+                      <FormControl>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "justify-start text-left font-normal",
+                                !date && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {date ? (
+                                format(date, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={date}
+                              onSelect={handleDateChange}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="monthly"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Plan</FormLabel>
+                      <FormControl>
+                        <div className="flex items-center gap-2 h-9 whitespace-nowrap">
+                          <Switch
+                            id="monthly"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                          <Label htmlFor="monthly">Monthly</Label>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="relative">
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem className="col-span-2">
+                      <FormLabel>Amount</FormLabel>
+                      <FormControl>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            {...field}
+                            onChange={handleChange}
+                            value={displayAmount}
+                            inputMode="numeric"
+                            placeholder="0,00"
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="absolute right-0 bottom-0">
+                  <FormField
+                    control={form.control}
+                    name="type"
+                    render={({ field }) => (
+                      <FormItem className="col-span-1">
+                        <FormControl>
+                          <ToggleGroup
+                            size="sm"
+                            type="single"
+                            value={field.value}
+                            onValueChange={() => {
+                              const newValue =
+                                field.value === "income" ? "expense" : "income";
+                              form.setValue("type", newValue);
+                            }}
+                            className="mb-1 mr-1"
+                          >
+                            <ToggleGroupItem
+                              value={field.value}
+                              className={cn(
+                                "data-[state=on]:text-chart-1 data-[state=on]:bg-chart-1/20",
+                                field.value === "expense" &&
+                                  "data-[state=on]:text-chart-2 data-[state=on]:bg-chart-2/20"
+                              )}
+                            >
+                              {field.value === "income" ? "Income" : "Expense"}
+                            </ToggleGroupItem>
+                          </ToggleGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex items-center gap-4">
+                <FormField
+                  control={form.control}
+                  name="login"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Login</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <FormControl>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <FormItem>
+                            <FormControl>
+                              <div>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="paid">Paid</SelectItem>
+                                  <SelectItem value="unpaid">Unpaid</SelectItem>
+                                </SelectContent>
+                              </div>
+                            </FormControl>
+                          </FormItem>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </form>
+          </Form>
+        </div>
+        <div className="flex flex-col gap-4">
+          <h2 className="text-lg font-medium">Preview</h2>
           <div className="flex flex-col gap-4">
             <div className="flex justify-between">
               <div>
                 <h1 className="text-2xl font-medium">
-                  Invoices #{invoiceId ? invoiceId : "000001"}
+                  Invoices #
+                  {invoices[index].invoiceId
+                    ? invoices[index].invoiceId
+                    : "000001"}
                 </h1>
                 <p className="text-sm text-muted-foreground">
                   Invoice created at{" "}
-                  {format(createdAt || new Date(), "dd/MM/yyyy")}
+                  {format(invoices[index].createdAt, "dd/MM/yyyy")}
                 </p>
               </div>
               <div>
@@ -470,17 +513,17 @@ function InvoiceDetails({
                   variant="outline"
                   className={cn(
                     "flex items-center gap-1 text-md",
-                    formValues.invoiceStatus == "paid"
+                    formValues.status == "paid"
                       ? "text-chart-1 border-chart-1/40"
                       : "text-chart-2 border-chart-2/40"
                   )}
                 >
-                  {formValues.invoiceStatus == "paid" ? (
+                  {formValues.status == "paid" ? (
                     <CheckCircle size={16} />
                   ) : (
                     <CircleX size={16} />
                   )}
-                  {formValues.invoiceStatus}
+                  {formValues.status}
                 </Badge>
               </div>
             </div>
@@ -489,16 +532,16 @@ function InvoiceDetails({
                 <p className="text-muted-foreground">Invoice Due Date:</p>
                 <p className="flex items-center gap-2">
                   {date ? format(date, "dd/MM/yyyy") : "Not set"}{" "}
-                  {formValues.isMonthly && <RotateCw size={12} />}
+                  {formValues.monthly && <RotateCw size={12} />}
                 </p>
               </div>
               <div>
                 <p className="text-muted-foreground">Invoice Amount:</p>
-                <p>{getFormattedValue(formValues.invoiceAmount)}</p>
+                <p>{displayAmount}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Invoice Type:</p>
-                <p className="capitalize">{formValues.invoiceType}</p>
+                <p className="capitalize">{formValues.type}</p>
               </div>
             </div>
             <div className="flex items-center justify-between gap-4 p-4 h-20 border rounded-lg">
@@ -519,14 +562,14 @@ function InvoiceDetails({
                   )}
                 </div>
                 <div>
-                  <p>{formValues.invoiceName || "Invoice Name"}</p>
+                  <p>{formValues.name || "Invoice Name"}</p>
                   <p className="max-w-40 text-xs text-muted-foreground truncate">
-                    {formValues.invoiceDescription || "No description"}
+                    {formValues.description || "No description"}
                   </p>
                 </div>
               </div>
-              {formValues.invoiceLink && (
-                <Link href={formValues.invoiceLink} target="_blank">
+              {formValues.link && (
+                <Link href={formValues.link} target="_blank">
                   <ExternalLink size={16} />
                 </Link>
               )}
@@ -535,40 +578,34 @@ function InvoiceDetails({
               <div className="p-4 bg-card rounded-lg">
                 <p className="text-muted-foreground">Invoice Login:</p>
                 <p className="max-w-40 truncate">
-                  {formValues.invoiceLogin || "No required"}
+                  {formValues.login || "No required"}
                 </p>
               </div>
               <div className="p-4 bg-card rounded-lg">
                 <p className="text-muted-foreground">Invoice Password:</p>
                 <p className="">
-                  {formValues.invoicePassword
-                    ? "***************"
-                    : "No required"}
+                  {formValues.password ? "***************" : "No required"}
                 </p>
               </div>
             </div>
             {isAction && (
               <div className="flex items-center gap-2">
                 <Button
-                  variant="secondary"
                   className="flex-1"
+                  variant="secondary"
                   onClick={() => {
-                    formValues.invoiceStatus == "paid"
-                      ? form.setValue("invoiceStatus", "unpaid")
-                      : form.setValue("invoiceStatus", "paid");
+                    form.handleSubmit(onSubmitUpdate)();
                   }}
                 >
-                  Change Status
+                  <RefreshCw />
+                  <p className="hidden @[275px]:block text-sm">Update</p>
                 </Button>
-                {!detailsOpen && (
-                  <Button
-                    variant="secondary"
-                    onClick={() => setDetailsOpen(true)}
-                  >
-                    <PencilLine />
-                  </Button>
-                )}
-                <Button variant="destructive">
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    deleteInvoice(invoices[index].invoiceId);
+                  }}
+                >
                   <Trash />
                 </Button>
               </div>

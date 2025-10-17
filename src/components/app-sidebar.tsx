@@ -95,7 +95,15 @@ export function AppSidebar() {
                   <Link
                     href={item.href}
                     onClick={() => isMobile && toggleSidebar()}
+                    className="relative"
                   >
+                    <div
+                      className={
+                        pathname === item.href
+                          ? "absolute left-0 w-[3px] h-5 bg-primary rounded-full"
+                          : "hidden"
+                      }
+                    />
                     <item.icon />
                     {item.label}
                   </Link>
