@@ -1,9 +1,9 @@
 import { Blend, User } from "lucide-react";
 
-export const clients = {
-  clientsMain: [
+export const customers = {
+  customersMain: [
     {
-      title: "Recent Clients",
+      title: "Recent customers",
       url: "#",
       icon: Blend,
       isActive: true,
@@ -11,7 +11,7 @@ export const clients = {
         {
           id: 1,
           title: "Luciana Almeida",
-          url: "/clients/luciana-almeida",
+          url: "/customers/luciana-almeida",
           icon: User,
           description:
             "Luciana is a photographer and a member of the National Union of Photographers (UNIPE).",

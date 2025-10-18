@@ -41,7 +41,7 @@ import logo from "../../public/images/logo.svg";
 
 // App data
 import { sidebar } from "@/src/data/sidebar";
-import { clients } from "@/src/data/clients";
+import { customers } from "@/src/data/customers";
 
 // App context and logic
 import { AuthContext } from "@/src/contexts/AuthContext";
@@ -117,7 +117,7 @@ export function AppSidebar() {
         {user && (
           <SidebarGroup>
             <SidebarMenu>
-              {clients.clientsMain.map((item) => (
+              {customers.customersMain.map((item) => (
                 <Collapsible
                   key={item.title}
                   asChild
@@ -150,7 +150,7 @@ export function AppSidebar() {
                         <SidebarMenuSubItem>
                           <SidebarMenuSubButton asChild>
                             <Link
-                              href="/clients"
+                              href="/customers"
                               onClick={() => isMobile && toggleSidebar()}
                             >
                               <ScanSearch />

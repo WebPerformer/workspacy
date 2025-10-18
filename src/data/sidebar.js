@@ -8,8 +8,8 @@ export const sidebar = {
       icon: LayoutDashboard,
     },
     {
-      label: "My Clients",
-      href: "/clients",
+      label: "My Customers",
+      href: "/customers",
       icon: Users,
     },
   ],
