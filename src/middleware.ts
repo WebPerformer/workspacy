@@ -14,12 +14,15 @@ export function middleware(req: NextRequest) {
     "/callback/google",
   ];
 
-  // Se o usuário NÃO tiver token e tentar acessar qualquer rota que não seja pública → redireciona para /signin
+  // Webhook deve sempre ser liberado
+  if (path === "/api/stripe/webhook") return NextResponse.next();
+
+  // Não autenticado → redireciona para signin
   if (!token && !publicPaths.some((p) => path.startsWith(p))) {
     return NextResponse.redirect(new URL("/signin", req.nextUrl.origin));
   }
 
-  // Se o usuário JÁ estiver logado e tentar acessar uma rota pública → redireciona para /
+  // Usuário logado tentando acessar página pública → redireciona para /
   if (token && publicPaths.includes(path)) {
     return NextResponse.redirect(new URL("/", req.nextUrl.origin));
   }
@@ -39,7 +42,7 @@ export function middleware(req: NextRequest) {
       value: googleToken,
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7, // One week
+      maxAge: 60 * 60 * 24 * 7, // 1 semana
       path: "/",
     });
 
@@ -50,5 +53,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/stripe/webhook).*)"],
 };
