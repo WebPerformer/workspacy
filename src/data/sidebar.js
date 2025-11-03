@@ -1,16 +1,22 @@
-import { LayoutDashboard, Users } from "lucide-react";
+import { LayoutDashboard, Users, MonitorDot, Gamepad2 } from "lucide-react";
 
 export const sidebar = {
   navMain: [
     {
-      label: "Introduction",
+      label: "Dashboard",
       href: "/",
       icon: LayoutDashboard,
     },
     {
-      label: "My Customers",
+      label: "Meus Clientes",
       href: "/customers",
       icon: Users,
+      roles: ["admin"],
+    },
+    {
+      label: "Websites Templates",
+      href: "/products-web",
+      icon: MonitorDot,
     },
   ],
 };

@@ -1,12 +1,14 @@
 "use client";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { toast } from "sonner";
 
-import { Check, Copy, Ellipsis, User } from "lucide-react";
+import { ExternalLink, User } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Skeleton } from "..//ui/skeleton";
 
-import { useEffect, useMemo, useState } from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { getCustomers } from "@/src/lib/customers";
 
 interface Customer {
   customer_id: string;
@@ -21,77 +23,54 @@ interface Customer {
 }
 
 interface CustomersCardsProps {
-  search: string;
   onCountChange?: (count: number) => void;
 }
 
-export default function CustomersCards({
-  search,
-  onCountChange,
-}: CustomersCardsProps) {
+export default function CustomersCards({ onCountChange }: CustomersCardsProps) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const [copied, setCopied] = useState<string | null>(null);
-
-  const handleCopy = async (label: string, value: string) => {
-    await navigator.clipboard.writeText(value);
-    setCopied(label);
-    setTimeout(() => setCopied(null), 1500);
-  };
-
-  const filteredCustomers = useMemo(() => {
-    if (!search.trim()) return customers;
-    return customers.filter((c) =>
-      c.customer_id.toString().includes(search.trim())
-    );
-  }, [search, customers]);
 
   useEffect(() => {
     fetchCustomers();
   }, []);
 
   const fetchCustomers = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch("/api/stripe/customers");
+    setLoading(true);
+    const result = await getCustomers();
 
-      const result = await response.json();
-
-      if (result.success) {
-        setCustomers(result.data || []);
-        onCountChange?.(result.count);
-      } else {
-        throw new Error(result.error || "Failed to fetch customers");
-      }
-    } catch (err) {
-      console.error("Fetch error details:", err);
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setLoading(false);
+    if (result?.success) {
+      setCustomers(result.data);
+      onCountChange?.(result.count);
+    } else {
+      toast.error("Failed to fetch customers");
     }
+
+    setLoading(false);
   };
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 gap-2">
-        {Array.from({ length: 2 }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded-lg p-2 border hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Skeleton className="h-8 w-8 rounded-lg" />
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-[120px]" />
-                  <Skeleton className="h-3 w-[100px]" />
+      <div className="grid @[575px]:grid-cols-2 @[775px]:grid-cols-3 gap-2">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="border rounded-lg p-2 @[575px]:p-3">
+            <div className="flex flex-col gap-3 @[575px]:gap-6">
+              <Skeleton className="flex items-center justify-center h-14 rounded-lg" />
+              <div className="flex items-center justify-between">
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-[100px]" />
+                  <Skeleton className="h-3 w-[140px]" />
                 </div>
+                <Skeleton className="h-4 w-4 rounded-md mx-2" />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-1">
+                <Skeleton className="h-3 w-[90%]" />
+                <Skeleton className="h-3 w-[80%]" />
+                <Skeleton className="h-3 w-[70%]" />
+              </div>
+              <div className="flex items-center justify-between">
                 <Skeleton className="h-5 w-[60px] rounded-full" />
-                <Skeleton className="h-6 w-6 rounded-md" />
+                <Skeleton className="h-5 w-[60px] rounded-full" />
               </div>
             </div>
           </div>
@@ -114,82 +93,69 @@ export default function CustomersCards({
   }
 
   return (
-    <div className="grid @[675px]:grid-cols-2 gap-2">
-      {filteredCustomers.map((customer) => (
-        <div
+    <div className="grid @[575px]:grid-cols-2 @[775px]:grid-cols-3 gap-2">
+      {customers.map((customer) => (
+        <Link
           key={customer.customer_id}
-          className="bg-card border border-transparent rounded-lg cursor-pointer p-2 @[675px]:p-3 hover:border-border hover:-translate-y-1 ease-in transition-all duration-150"
+          href={`/customers/${customer.slug}`}
+          className="bg-card border border-transparent rounded-lg cursor-pointer p-2 @[575px]:p-3 hover:border-border hover:-translate-y-1 ease-in transition-all duration-150 block"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="bg-border p-2 h-fit rounded-lg">
-                <User size={20} className="text-muted-foreground" />
+          <div>
+            <div className="flex flex-col gap-3 @[575px]:gap-6">
+              <div className="flex items-center justify-center bg-border h-14 rounded-lg">
+                <User size={26} className="text-muted-foreground" />
               </div>
-              <div style={{ lineBreak: "anywhere" }} className="min-w-0 flex-1">
-                <p className="line-clamp-1">{customer.name}</p>
-                <p className="text-xs text-muted-foreground line-clamp-1">
-                  {customer.email}
+              <div className="flex items-center justify-between">
+                <div
+                  style={{ lineBreak: "anywhere" }}
+                  className="min-w-0 flex-1"
+                >
+                  <p className="line-clamp-1">{customer.name}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-1">
+                    {customer.email}
+                  </p>
+                </div>
+                <ExternalLink
+                  size={16}
+                  className="text-muted-foreground mx-2"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <p className="text-xs text-muted-foreground">
+                  Customer_ID:{" "}
+                  <span className="text-foreground">
+                    {customer.customer_id}
+                  </span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Phone:{" "}
+                  <span className="text-foreground">{customer.phone}</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Slug: <span className="text-foreground">{customer.slug}</span>
                 </p>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge
-                className={
-                  customer.status
-                    ? "text-green-700 bg-green-300"
-                    : "text-red-700 bg-red-300"
-                }
-              >
-                {customer.status ? "Active" : "Inactive"}
-              </Badge>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button size="sm" variant="outline">
-                    <Ellipsis size={16} />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-48 p-1">
-                  <div className="space-y-1">
-                    <Button
-                      size="sm"
-                      onClick={() =>
-                        handleCopy("id", customer.customer_id.toString())
-                      }
-                      className="w-full flex items-center text-xs font-normal justify-between rounded-md bg-border hover:bg-border/50 transition"
-                    >
-                      <span className="lowercase">{customer.customer_id}</span>
-                      {copied === "id" ? (
-                        <Check className="text-green-600" />
-                      ) : (
-                        <Copy className="text-muted-foreground" />
-                      )}
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() =>
-                        handleCopy("phone", customer.phone ?? "No phone")
-                      }
-                      className="w-full flex items-center text-xs font-normal justify-between rounded-md bg-border hover:bg-border/50 transition"
-                    >
-                      <span>{customer.phone}</span>
-                      {copied === "phone" ? (
-                        <Check className="text-green-600" />
-                      ) : (
-                        <Copy className="text-muted-foreground" />
-                      )}
-                    </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <div className="flex items-center justify-between">
+                <Badge variant="outline">{customer.created_at}</Badge>
+                <Badge
+                  className={
+                    customer.status
+                      ? "text-green-700 bg-green-300"
+                      : "text-red-700 bg-red-300"
+                  }
+                >
+                  {customer.status ? "Active" : "Inactive"}
+                </Badge>
+              </div>
             </div>
           </div>
-        </div>
+        </Link>
       ))}
 
       {customers.length === 0 && (
-        <div className="bg-card rounded-lg p-8 border text-center">
-          <User size={48} className="text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">Nenhum customer encontrado</p>
+        <div className="col-span-3 text-center">
+          <User size={38} className="text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">No customers found</p>
         </div>
       )}
     </div>

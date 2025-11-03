@@ -1,5 +1,4 @@
 "use server";
-
 import { cookies } from "next/headers";
 
 type SigninData = {
@@ -14,9 +13,24 @@ type SignupData = {
   password: string;
 };
 
-export async function SignInRequest({ email, password, remember }: SigninData) {
+type ForgotPasswordData = {
+  email: string;
+};
+
+type ValidateOtpData = {
+  email: string;
+  otp: string;
+};
+
+type ResetPasswordData = {
+  email: string;
+  otp: string;
+  newPassword: string;
+};
+
+export async function signInRequest({ email, password, remember }: SigninData) {
   try {
-    const response = await fetch("http://localhost:3001/signin", {
+    const response = await fetch(`${process.env.EXTERNAL_API_URL}/signin`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -57,7 +71,7 @@ export async function SignInRequest({ email, password, remember }: SigninData) {
   }
 }
 
-export async function SignUpRequest({ username, email, password }: SignupData) {
+export async function signUpRequest({ username, email, password }: SignupData) {
   try {
     const response = await fetch("http://localhost:3001/signup", {
       method: "POST",
@@ -71,7 +85,7 @@ export async function SignUpRequest({ username, email, password }: SignupData) {
     const result = await response.json();
 
     if (response.ok) {
-      const user = await SignInRequest({ email, password, remember: false });
+      const user = await signInRequest({ email, password, remember: false });
       return { success: true, data: user.data };
     } else {
       return { success: false, data: result.data };
@@ -82,10 +96,112 @@ export async function SignUpRequest({ username, email, password }: SignupData) {
   }
 }
 
-export async function SignOutRequest() {
+export async function getGoogleOAuthURL() {
+  const rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
+
+  const options = {
+    redirect_uri: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_REDIRECT_URL as string,
+    client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID as string,
+    access_type: "offline",
+    response_type: "code",
+    prompt: "consent",
+    scope: [
+      "https://www.googleapis.com/auth/userinfo.profile",
+      "https://www.googleapis.com/auth/userinfo.email",
+    ].join(" "),
+  };
+
+  const qs = new URLSearchParams(options);
+
+  return `${rootUrl}?${qs.toString()}`;
+}
+
+export async function signOutRequest() {
   try {
     (await cookies()).delete("token");
   } catch (error) {
     console.error("Erro ao fazer logout:", error);
+  }
+}
+
+export async function forgotPasswordRequest({ email }: ForgotPasswordData) {
+  try {
+    const response = await fetch(
+      `${process.env.EXTERNAL_API_URL}/forgot-password`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+        }),
+      }
+    );
+    const result = await response.json();
+
+    if (response.ok) {
+      return { success: true, data: result };
+    } else {
+      return { success: false, data: result };
+    }
+  } catch (error) {
+    console.error("Erro:", error);
+    return { success: false, data: error };
+  }
+}
+
+export async function validateOtpRequest({ email, otp }: ValidateOtpData) {
+  try {
+    const response = await fetch(
+      `${process.env.EXTERNAL_API_URL}/validate-otp`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          otp,
+        }),
+      }
+    );
+    const result = await response.json();
+
+    if (response.ok) {
+      return { success: true, data: result };
+    } else {
+      return { success: false, data: result };
+    }
+  } catch (error) {
+    console.error("Erro:", error);
+    return { success: false, data: error };
+  }
+}
+
+export async function resetPasswordRequest({
+  email,
+  otp,
+  newPassword,
+}: ResetPasswordData) {
+  try {
+    const response = await fetch(
+      `${process.env.EXTERNAL_API_URL}/reset-password`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          otp,
+          newPassword,
+        }),
+      }
+    );
+    const result = await response.json();
+
+    if (response.ok) {
+      return { success: true, data: result };
+    } else {
+      return { success: false, data: result };
+    }
+  } catch (error) {
+    console.error("Erro:", error);
+    return { success: false, data: error };
   }
 }

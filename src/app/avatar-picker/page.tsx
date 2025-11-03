@@ -99,15 +99,8 @@ function Avatar() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Drama size={16} />
-          <h3 className="text-lg font-medium">Pick Your Avatar</h3>
+          <h3 className="text-lg font-medium">Escolha Seu Avatar</h3>
         </div>
-        <Button
-          variant="secondary"
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <Trash />
-          <p className="hidden @[275px]:block text-sm">Remove</p>
-        </Button>
       </div>
       <div className="grid grid-cols-2 @[475px]:grid-cols-4 @[675px]:grid-cols-5 gap-2">
         {avatars.map((avatar, index) => (
@@ -135,10 +128,10 @@ function Avatar() {
           disabled={selectedAvatar === null}
           onClick={() => handleUpdateProfileImage(selectedAvatar!)}
         >
-          Select This Character
+          Escolher esse
         </Button>
         <Link href="/">
-          <Button variant="secondary">Cancel</Button>
+          <Button variant="secondary">Cancelar</Button>
         </Link>
       </div>
     </section>

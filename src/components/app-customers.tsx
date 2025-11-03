@@ -1,13 +1,9 @@
 "use client";
 import { useState } from "react";
-import { Users, Search } from "lucide-react";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import { Users } from "lucide-react";
 import CustomersCards from "./customers/customers-cards";
 
 export default function AppCustomers() {
-  const [search, setSearch] = useState("");
-  const [showSearch, setShowSearch] = useState(false);
   const [customerCount, setCustomerCount] = useState(0);
 
   return (
@@ -20,26 +16,8 @@ export default function AppCustomers() {
             <span>{customerCount}</span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {showSearch && (
-            <Input
-              placeholder="Search by ID..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="transition-all"
-            />
-          )}
-
-          <Button
-            variant="secondary"
-            className="text-muted-foreground hover:text-foreground"
-            onClick={() => setShowSearch((prev) => !prev)}
-          >
-            <Search />
-          </Button>
-        </div>
       </div>
-      <CustomersCards search={search} onCountChange={setCustomerCount} />
+      <CustomersCards onCountChange={setCustomerCount} />
     </section>
   );
 }

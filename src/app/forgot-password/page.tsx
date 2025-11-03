@@ -1,9 +1,11 @@
 "use client";
-
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 import logo from "@/public/images/logo-ui.svg";
 import loading from "@/public/images/loading.svg";
@@ -20,18 +22,15 @@ import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { MoveLeft } from "lucide-react";
-import { forgotPasswordRequest } from "@/src/lib/forgotPassword";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { useState } from "react";
+import { forgotPasswordRequest } from "@/src/lib/auth";
 
 const formSchema = z.object({
   email: z.string().email({
-    message: "Invalid email address.",
+    message: "Endereço de e-mail inválido.",
   }),
 });
 
-function ForgotPassword() {
+export default function ForgotPassword() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
@@ -61,9 +60,9 @@ function ForgotPassword() {
       <div className="flex flex-col items-center gap-6 text-center">
         <Image src={logo} alt="logo" width={40} height={40} />
         <div>
-          <h1 className="text-xl font-medium mb-1">Forgot Password?</h1>
+          <h1 className="text-xl font-medium mb-1">Esqueceu sua senha?</h1>
           <p className="text-sm text-muted-foreground">
-            No worries, we'll send you reset instructions.
+            Não se preocupe, enviaremos instruções de redefinição.
           </p>
         </div>
       </div>
@@ -88,7 +87,7 @@ function ForgotPassword() {
               {isLoading ? (
                 <Image src={loading} alt="loading" width={20} height={20} />
               ) : (
-                "Send Reset Link"
+                "Enviar link de redefinição"
               )}
             </Button>
           </div>
@@ -98,10 +97,9 @@ function ForgotPassword() {
         href="/signin"
         className="flex items-center justify-center gap-2 text-sm hover:text-foreground hover:underline"
       >
-        <MoveLeft /> Back to Sign In
+        <MoveLeft />
+        Voltar para fazer login
       </Link>
     </section>
   );
 }
-
-export default ForgotPassword;

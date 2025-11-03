@@ -33,11 +33,9 @@ export default function RootLayout({
           <SidebarProvider>
             <AppSidebar />
             <SidebarInset>
-              <main className="w-full min-h-screen md:min-h-[calc(100vh-1rem)] rounded-lg bg-muted px-4 md:px-11 py-2">
+              <main className="w-full min-h-screen md:min-h-[calc(100vh-1rem)] rounded-lg bg-muted px-2 md:px-11 py-2">
                 <AppHeader />
-                <div className="max-w-[1200px] mx-auto px-2 sm:px-4">
-                  {children}
-                </div>
+                <div className="max-w-[1200px] mx-auto px-2">{children}</div>
                 <footer className="h-[20px] mb-2 mt-10 sm:mt-14" />
               </main>
               <Toaster />

@@ -1,16 +1,18 @@
 "use client";
-
+import { useState } from "react";
 import Image from "next/image";
+import { useSearchParams, useRouter } from "next/navigation";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 import logo from "@/public/images/logo-ui.svg";
+import loading from "@/public/images/loading.svg";
 
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -18,24 +20,20 @@ import {
 } from "@/src/components/ui/form";
 import { Input } from "@/src/components/ui/input";
 import { Button } from "@/src/components/ui/button";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useSearchParams, useRouter } from "next/navigation";
-import { resetPasswordRequest } from "@/src/lib/forgotPassword";
-import { useState } from "react";
-import loading from "@/public/images/loading.svg";
+import { resetPasswordRequest } from "@/src/lib/auth";
 import { EyeOff, Eye } from "lucide-react";
 
 const formSchema = z
   .object({
-    password: z.string().min(8, "Password must be at least 8 characters."),
+    password: z.string().min(8, "A senha deve ter pelo menos 8 caracteres."),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     path: ["confirmPassword"],
-    message: "Passwords must match",
+    message: "As senhas devem corresponder",
   });
 
-function ResetPassword() {
+export default function ResetPassword() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
   const otp = searchParams.get("otp");
@@ -74,9 +72,9 @@ function ResetPassword() {
       <div className="flex flex-col items-center gap-6 text-center">
         <Image src={logo} alt="logo" width={40} height={40} />
         <div>
-          <h1 className="text-xl font-medium mb-1">Set new password</h1>
+          <h1 className="text-xl font-medium mb-1">Definir nova senha</h1>
           <p className="text-sm text-muted-foreground">
-            Must be at least 8 characters.
+            Deve ter pelo menos 8 caracteres.
           </p>
         </div>
       </div>
@@ -88,7 +86,7 @@ function ResetPassword() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>New password</FormLabel>
+                  <FormLabel>Nova Senha</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Input
@@ -117,7 +115,7 @@ function ResetPassword() {
               name="confirmPassword"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Confirm new password</FormLabel>
+                  <FormLabel>Confirme a nova senha</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Input
@@ -149,7 +147,7 @@ function ResetPassword() {
               {isLoading ? (
                 <Image src={loading} alt="loading" width={20} height={20} />
               ) : (
-                "Reset password"
+                "Redefinir senha"
               )}
             </Button>
           </div>
@@ -158,5 +156,3 @@ function ResetPassword() {
     </section>
   );
 }
-
-export default ResetPassword;

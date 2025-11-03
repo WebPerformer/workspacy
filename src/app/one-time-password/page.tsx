@@ -1,11 +1,14 @@
 "use client";
-
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 
 import logo from "@/public/images/logo-ui.svg";
+import loading from "@/public/images/loading.svg";
 
 import {
   Form,
@@ -20,31 +23,23 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/src/components/ui/input-otp";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  forgotPasswordRequest,
-  validateOtpRequest,
-} from "@/src/lib/forgotPassword";
-import { toast } from "sonner";
-import { useEffect, useState } from "react";
-import loading from "@/public/images/loading.svg";
+import { forgotPasswordRequest, validateOtpRequest } from "@/src/lib/auth";
 
 const formSchema = z.object({
   otp: z.string().min(6, {
-    message: "Invalid OTP.",
+    message: "OTP inválido.",
   }),
 });
 
-function OtpCode() {
+export default function OtpCode() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [timer, setTimer] = useState(60); // Initialize with 60 seconds
+  const [timer, setTimer] = useState(60);
 
   async function handleResend() {
     if (timer === 0) {
-      console.log("Resending email...");
       setTimer(60);
       const { success, data } = await forgotPasswordRequest({
         email: email!,
@@ -67,7 +62,6 @@ function OtpCode() {
     return () => clearInterval(interval);
   }, [timer]);
 
-  // Add new useEffect to start countdown on mount
   useEffect(() => {
     setTimer(60);
   }, []);
@@ -100,9 +94,9 @@ function OtpCode() {
       <div className="flex flex-col items-center gap-6 text-center">
         <Image src={logo} alt="logo" width={40} height={40} />
         <div>
-          <h1 className="text-xl font-medium mb-1">Password Reset</h1>
+          <h1 className="text-xl font-medium mb-1">Redefinição de senha</h1>
           <p className="text-sm text-muted-foreground">
-            We send a code to{" "}
+            Enviamos um código para{" "}
             <span className="text-foreground font-medium">{email}</span>
           </p>
         </div>
@@ -179,5 +173,3 @@ function OtpCode() {
     </section>
   );
 }
-
-export default OtpCode;

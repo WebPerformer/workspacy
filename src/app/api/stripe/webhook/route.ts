@@ -88,26 +88,6 @@ export async function POST(req: Request) {
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
 
-        const subscriptionStatus =
-          event.type !== "customer.subscription.deleted" &&
-          subscription.status === "active";
-
-        await makeBackendRequest(
-          `${process.env.EXTERNAL_API_URL}/customers/update`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Webhook-Token": webhookToken!,
-            },
-            body: JSON.stringify({
-              customer_id: subscription.customer,
-              subscription_id: subscription.id,
-              status: subscriptionStatus,
-            }),
-          },
-          `Update Subscription (${event.type})`
-        );
         break;
       }
 

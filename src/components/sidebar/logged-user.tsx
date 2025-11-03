@@ -54,7 +54,7 @@ import {
   ChangePasswordProfile,
   DeleteProfile,
 } from "@/src/lib/user";
-import { SignOutRequest } from "@/src/lib/auth";
+import { signOutRequest } from "@/src/lib/auth";
 
 // Third-party libraries
 import { z } from "zod";
@@ -148,7 +148,7 @@ function LoggedUser() {
   }
 
   const handleLogout = async () => {
-    await SignOutRequest();
+    await signOutRequest();
     setUser(null);
     router.push("/");
   };
@@ -233,7 +233,7 @@ function LoggedUser() {
               >
                 <DropdownMenuItem>
                   <SquareUserRound />
-                  Select avatar
+                  Selecionar avatar
                 </DropdownMenuItem>
               </Link>
             </DropdownMenuGroup>
@@ -242,26 +242,26 @@ function LoggedUser() {
               <DialogTrigger asChild>
                 <DropdownMenuItem onClick={() => setActiveDialog("username")}>
                   <Pencil />
-                  Change name
+                  Mudar nome
                 </DropdownMenuItem>
               </DialogTrigger>
               <DialogTrigger asChild>
                 <DropdownMenuItem onClick={() => setActiveDialog("password")}>
                   <ShieldEllipsis />
-                  Reset password
+                  Redefinir senha
                 </DropdownMenuItem>
               </DialogTrigger>
               <DialogTrigger asChild>
                 <DropdownMenuItem onClick={() => setActiveDialog("delete")}>
                   <Trash />
-                  Delete Account
+                  Excluir conta
                 </DropdownMenuItem>
               </DialogTrigger>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut />
-              Sign out
+              Sair da conta
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenuPortal>
@@ -269,8 +269,10 @@ function LoggedUser() {
       {activeDialog === "username" && (
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Change Username</DialogTitle>
-            <DialogDescription>Update your username here.</DialogDescription>
+            <DialogTitle>Alterar nome de usuário</DialogTitle>
+            <DialogDescription>
+              Atualize seu nome de usuário aqui.
+            </DialogDescription>
           </DialogHeader>
           <Form {...formUsername}>
             <form
@@ -282,7 +284,6 @@ function LoggedUser() {
                 name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Username</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -295,7 +296,7 @@ function LoggedUser() {
                   {isLoading ? (
                     <Image src={loading} alt="loading" width={20} height={20} />
                   ) : (
-                    "Save changes"
+                    "Salvar alterações"
                   )}
                 </Button>
               </DialogFooter>
@@ -306,8 +307,8 @@ function LoggedUser() {
       {activeDialog === "password" && (
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Change Password</DialogTitle>
-            <DialogDescription>Update your password here.</DialogDescription>
+            <DialogTitle>Alterar a senha</DialogTitle>
+            <DialogDescription>Atualize sua senha aqui.</DialogDescription>
           </DialogHeader>
           <Form {...formPassword}>
             <form
@@ -320,7 +321,7 @@ function LoggedUser() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>New password</FormLabel>
+                      <FormLabel>Nova Senha</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
@@ -349,7 +350,7 @@ function LoggedUser() {
                   name="confirmPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Confirm new password</FormLabel>
+                      <FormLabel>Confirme a nova senha</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
@@ -392,15 +393,15 @@ function LoggedUser() {
       {activeDialog === "delete" && (
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Delete Account</DialogTitle>
+            <DialogTitle>Excluir conta</DialogTitle>
             <DialogDescription>
-              This action cannot be undone. This will permanently delete your
-              account and all of its data.
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente sua
+              conta e todos os seus dados.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="destructive" onClick={handleDeleteProfile}>
-              Delete Account
+              Excluir conta
             </Button>
           </DialogFooter>
         </DialogContent>

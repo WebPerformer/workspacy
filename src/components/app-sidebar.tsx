@@ -41,7 +41,6 @@ import logo from "../../public/images/logo.svg";
 
 // App data
 import { sidebar } from "@/src/data/sidebar";
-import { customers } from "@/src/data/customers";
 
 // App context and logic
 import { AuthContext } from "@/src/contexts/AuthContext";
@@ -51,6 +50,10 @@ export function AppSidebar() {
   const { isMobile, toggleSidebar } = useSidebar();
 
   const { user } = useContext(AuthContext);
+
+  const filteredNav = sidebar.navMain.filter(
+    (item) => !item.roles || (user && item.roles.includes(user.role))
+  );
 
   return (
     <Sidebar variant="inset">
@@ -79,7 +82,7 @@ export function AppSidebar() {
               onClick={() => isMobile && toggleSidebar()}
               className="w-full"
             >
-              <Button className="w-full">Sign In</Button>
+              <Button className="w-full">Entrar</Button>
             </Link>
           )}
         </SidebarGroup>
@@ -87,7 +90,7 @@ export function AppSidebar() {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                {sidebar.navMain.map((item) => (
+                {filteredNav.map((item) => (
                   <SidebarMenuButton
                     key={item.label}
                     variant={pathname === item.href ? "outline" : "default"}
@@ -112,58 +115,6 @@ export function AppSidebar() {
                 ))}
               </SidebarMenu>
             </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-        {user && (
-          <SidebarGroup>
-            <SidebarMenu>
-              {customers.customersMain.map((item) => (
-                <Collapsible
-                  key={item.title}
-                  asChild
-                  defaultOpen={item.isActive}
-                  className="group/collapsible"
-                >
-                  <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton tooltip={item.title}>
-                        {item.icon && <item.icon />}
-                        <span>{item.title}</span>
-                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        {item.items?.slice(0, 5).map((subItem) => (
-                          <SidebarMenuSubItem key={subItem.title}>
-                            <SidebarMenuSubButton asChild>
-                              <Link
-                                href={subItem.url}
-                                onClick={() => isMobile && toggleSidebar()}
-                              >
-                                {subItem.icon && <subItem.icon />}
-                                <span>{subItem.title}</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        ))}
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild>
-                            <Link
-                              href="/customers"
-                              onClick={() => isMobile && toggleSidebar()}
-                            >
-                              <ScanSearch />
-                              <span>Explore All</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </SidebarMenuItem>
-                </Collapsible>
-              ))}
-            </SidebarMenu>
           </SidebarGroup>
         )}
       </SidebarContent>

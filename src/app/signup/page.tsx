@@ -1,35 +1,42 @@
 "use client";
+
 import { useContext, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Eye, EyeOff } from "lucide-react";
 
-import Image from "next/image";
-import Link from "next/link";
+import logo from "@/public/images/logo-ui.svg";
 import google from "@/public/images/google.png";
 import loading from "@/public/images/loading.svg";
-import logo from "@/public/images/logo-ui.svg";
 
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/src/components/ui/form";
-import { Button } from "@/src/components/ui/button";
-import { Checkbox } from "@/src/components/ui/checkbox";
 import { Input } from "@/src/components/ui/input";
-import { Label } from "@/src/components/ui/label";
-
+import { Button } from "@/src/components/ui/button";
 import { AuthContext } from "@/src/contexts/AuthContext";
-import { signInRequest, getGoogleOAuthURL } from "@/src/lib/auth";
+import { getGoogleOAuthURL, signUpRequest } from "@/src/lib/auth";
+import { EyeOff, Eye } from "lucide-react";
 
 const formSchema = z.object({
+  username: z
+    .string()
+    .min(3, {
+      message: "Name must be at least 3 characters.",
+    })
+    .max(30, {
+      message: "Name must be less than 30 characters.",
+    }),
   email: z.string().email({
     message: "Invalid email address.",
   }),
@@ -39,7 +46,7 @@ const formSchema = z.object({
   remember: z.boolean().default(false).optional(),
 });
 
-export default function SignIn() {
+function SignUp() {
   const { setUser } = useContext(AuthContext);
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -48,19 +55,20 @@ export default function SignIn() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      username: "",
       email: "",
       password: "",
-      remember: true,
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    const { success, data } = await signInRequest(values);
+    const { success, data } = await signUpRequest(values);
 
     if (success) {
+      toast.success("User created successfully");
       setUser(data);
-      router.push("/");
+      router.push("/avatar-picker");
     } else {
       toast.error(data.message);
     }
@@ -77,9 +85,9 @@ export default function SignIn() {
       <div className="flex flex-col items-center gap-6 text-center">
         <Image src={logo} alt="logo" width={40} height={40} />
         <div>
-          <h1 className="text-xl font-medium mb-1">WorkSpacy</h1>
+          <h1 className="text-xl font-medium mb-1">Comece agora mesmo</h1>
           <p className="text-sm text-muted-foreground">
-            Entre com seus dados por favor
+            Faça parte da nossa comunidade.
           </p>
         </div>
       </div>
@@ -95,6 +103,22 @@ export default function SignIn() {
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="username"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nome</FormLabel>
+                <FormControl>
+                  <Input type="text" {...field} />
+                </FormControl>
+                <FormDescription>
+                  Este é seu nome de exibição público.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <FormField
             control={form.control}
             name="email"
@@ -138,48 +162,26 @@ export default function SignIn() {
                 </FormItem>
               )}
             />
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FormField
-                  control={form.control}
-                  name="remember"
-                  render={({ field }) => (
-                    <Checkbox
-                      id="remember"
-                      checked={field.value}
-                      onCheckedChange={(checked) => field.onChange(checked)}
-                    />
-                  )}
-                />
-                <Label
-                  htmlFor="remember"
-                  className="text-sm text-muted-foreground"
-                >
-                  Lembrar de mim
-                </Label>
-              </div>
-              <Link href="/forgot-password" className="text-sm hover:underline">
-                Esqueceu a senha?
-              </Link>
-            </div>
           </div>
           <div className="flex flex-col gap-4">
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <Image src={loading} alt="loading" width={20} height={20} />
               ) : (
-                "Entrar"
+                "Registrar"
               )}
             </Button>
           </div>
         </form>
       </Form>
       <div className="flex items-center justify-center gap-2">
-        <p className="text-sm text-muted-foreground">Não tem uma conta?</p>
-        <Link href="/signup" className="text-sm hover:underline">
-          Registrar
+        <p className="text-sm text-muted-foreground">Já tem uma conta?</p>
+        <Link href="/signin" className="text-sm hover:underline">
+          Entrar
         </Link>
       </div>
     </section>
   );
 }
+
+export default SignUp;

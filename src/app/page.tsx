@@ -1,15 +1,18 @@
 "use client";
-import { useContext } from "react";
 
-import { AuthContext } from "@/src/contexts/AuthContext";
+import { Sparkle } from "lucide-react";
+import ProductsCards from "../components/products/products-cards";
 
-import Hero from "../components/app-landing-page/hero";
-import Cards from "../components/app-landing-page/cards";
-import Projects from "../components/app-landing-page/projects";
-import ProjectsTest from "../components/app-landing-page/projectsTest";
-
-export default function Home() {
-  const { user } = useContext(AuthContext);
-
-  return <div className="flex flex-col gap-10 sm:gap-28"></div>;
+export default function AppIntroduction() {
+  return (
+    <section className="flex flex-col gap-6 @container">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Sparkle size={16} />
+          <h3 className="text-lg font-medium line-clamp-1">Novos Templates</h3>
+        </div>
+      </div>
+      <ProductsCards />
+    </section>
+  );
 }
