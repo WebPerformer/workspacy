@@ -1,69 +1,39 @@
 import { Eye } from "lucide-react";
 import { useEffect, useState } from "react";
-import { getProducts } from "@/src/lib/products";
 import { toast } from "sonner";
-import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
 import { Skeleton } from "@/src/components/ui/skeleton";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/src/components/ui/drawer";
-import { RadioGroup, RadioGroupItem } from "@/src/components/ui/radio-group";
 import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation } from "swiper/modules";
 import "swiper/css";
 import Link from "next/link";
-
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  images: string[];
-  metadata: {
-    advantages_1?: string;
-    advantages_2?: string;
-    advantages_3?: string;
-    advantages_4?: string;
-    category?: string;
-    included?: string;
-    [key: string]: string | undefined;
-  };
-  price: {
-    id: string;
-    type: string;
-    unit_amount: number;
-    currency: string;
-    recurring?: any;
-  };
-}
+import { PurchaseDrawer } from "./products-drawer";
+import { activeTemplate, getTemplates } from "@/src/lib/templates";
+import { Button } from "../ui/button";
+import { Template } from "@/src/types/template";
+import Image from "next/image";
+import loadingSvg from "@/public/images/loading.svg";
 
 export default function ProductsCards() {
-  const [selectedOption, setSelectedOption] = useState<string>("one_time");
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingButton, setLoadingButton] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchProducts();
+    fetchTemplates();
   }, []);
 
-  const fetchProducts = async () => {
+  const fetchTemplates = async () => {
     try {
       setLoading(true);
-      const result = await getProducts();
+      const result = await getTemplates();
 
       if (result?.success) {
-        setProducts(result.data);
+        setTemplates(result.data);
       } else {
-        setError("Failed to fetch products");
-        toast.error("Failed to fetch products");
+        setError("Failed to fetch templates");
+        toast.error("Failed to fetch templates");
       }
     } catch (err) {
       setError("An error occurred");
@@ -73,16 +43,28 @@ export default function ProductsCards() {
     }
   };
 
-  const oneTimeProducts = products.filter(
-    (product) => product.price?.type === "one_time"
+  const oneTimeTemplates = templates.filter(
+    (template) => template.price?.type === "one_time"
   );
-  const subscriptionProducts = products.filter(
-    (product) => product.price?.type === "recurring"
+  const subscriptionTemplates = templates.filter(
+    (template) => template.price?.type === "recurring"
   );
 
-  const handleOpenDrawer = (product: Product) => {
-    setSelectedProduct(product);
-    setSelectedOption("one_time"); // Reset para compra avulsa
+  const handleActivateTemplate = async (templateId: string) => {
+    setLoadingButton(true);
+    try {
+      const result = await activeTemplate(templateId);
+
+      if (result?.success) {
+        toast.success("Template ativado com sucesso!");
+      } else {
+        toast.error("Erro ao ativar template");
+      }
+    } catch (error) {
+      toast.error("Erro ao ativar template");
+    } finally {
+      setLoadingButton(false);
+    }
   };
 
   if (loading)
@@ -109,18 +91,23 @@ export default function ProductsCards() {
   return (
     <Swiper
       spaceBetween={16}
-      slidesPerView={1}
+      slidesPerView={1.2}
       breakpoints={{
         575: {
           slidesPerView: 2.7,
           spaceBetween: 16,
         },
       }}
+      navigation={{
+        nextEl: ".swiper-button-next",
+        prevEl: ".swiper-button-prev",
+      }}
+      modules={[Navigation]}
       className="w-full"
     >
-      {oneTimeProducts.length > 0 ? (
-        oneTimeProducts.map((product) => (
-          <SwiperSlide key={product.id}>
+      {oneTimeTemplates.length > 0 ? (
+        oneTimeTemplates.map((templates) => (
+          <SwiperSlide key={templates.id}>
             <div className="space-y-4 bg-card rounded-lg p-3 @[575px]:p-4 border h-full">
               <div>
                 <Link
@@ -128,10 +115,10 @@ export default function ProductsCards() {
                   target="_blank"
                   className="relative group cursor-pointer"
                 >
-                  {product.images[0] && (
+                  {templates.images[0] && (
                     <img
-                      src={product.images[0]}
-                      alt={product.name}
+                      src={templates.images[0]}
+                      alt={templates.name}
                       className="object-cover rounded-lg aspect-[12/9] w-full"
                     />
                   )}
@@ -146,166 +133,35 @@ export default function ProductsCards() {
               </div>
               <div className="flex flex-col gap-1">
                 <h1 className="text-lg font-medium leading-none">
-                  {product.name}
+                  {templates.name}
                 </h1>
                 <p className="text-muted-foreground leading-none">
-                  {product.metadata.included}
+                  {templates.metadata.included}
                 </p>
               </div>
-
-              <Drawer>
-                <DrawerTrigger asChild>
-                  <Button
-                    className="w-full"
-                    onClick={() => handleOpenDrawer(product)}
-                  >
-                    Usar Template
-                  </Button>
-                </DrawerTrigger>
-                <DrawerContent>
-                  <div className="mx-auto w-full max-w-md max-h-[70vh] flex flex-col">
-                    <DrawerHeader>
-                      <DrawerTitle>Opções de Compra</DrawerTitle>
-                      <DrawerDescription>
-                        Escolha como deseja adquirir {selectedProduct?.name}
-                      </DrawerDescription>
-                    </DrawerHeader>
-
-                    <div className="flex-1 overflow-y-auto px-4">
-                      <RadioGroup
-                        value={selectedOption}
-                        onValueChange={setSelectedOption}
-                        className="space-y-4"
-                      >
-                        {/* Compra Avulsa */}
-                        <label
-                          htmlFor="one_time"
-                          className={`rounded-lg p-4 space-y-2 cursor-pointer block transition-colors hover:bg-muted/40 ${
-                            selectedOption === "one_time"
-                              ? "border bg-muted/20 border-primary"
-                              : "border border-transparent bg-muted/20"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <RadioGroupItem value="one_time" id="one_time" />
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <h4 className="font-medium">Compra Avulsa</h4>
-                                  <p className="text-xs text-muted-foreground">
-                                    Adquira Permanentemente
-                                  </p>
-                                </div>
-                                <Badge variant="secondary">
-                                  {(
-                                    (product.price.unit_amount || 0) / 100
-                                  ).toLocaleString("pt-BR", {
-                                    style: "currency",
-                                    currency: "BRL",
-                                  })}
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-4 h-4 flex-shrink-0" />
-                            <ul className="text-xs text-muted-foreground space-y-1 mt-2">
-                              {Object.entries(product.metadata)
-                                .filter(([key]) =>
-                                  key.startsWith("advantages_")
-                                )
-                                .map(([key, value]) => (
-                                  <li key={key}>
-                                    <span className="text-green-400">✓</span>{" "}
-                                    {value}
-                                  </li>
-                                ))}
-                            </ul>
-                          </div>
-                        </label>
-
-                        {/* Assinaturas Disponíveis */}
-                        <div className="space-y-3">
-                          <h3 className="font-semibold text-sm">
-                            Ou inclua em uma assinatura:
-                          </h3>
-                          {subscriptionProducts.map((subscription) => (
-                            <label
-                              key={subscription.id}
-                              htmlFor={subscription.id}
-                              className={`rounded-lg p-4 space-y-2 cursor-pointer block transition-colors hover:bg-muted/40 ${
-                                selectedOption === subscription.id
-                                  ? "border bg-muted/20 border-primary"
-                                  : "border border-transparent bg-muted/20"
-                              }`}
-                            >
-                              <div>
-                                <div className="flex items-center gap-3">
-                                  <RadioGroupItem
-                                    value={subscription.id}
-                                    id={subscription.id}
-                                  />
-                                  <div className="flex-1">
-                                    <div className="flex items-center justify-between">
-                                      <div>
-                                        <h4 className="font-medium">
-                                          {subscription.name}
-                                        </h4>
-                                        <p className="text-xs text-muted-foreground">
-                                          {subscription.metadata.category}
-                                        </p>
-                                      </div>
-                                      <Badge variant="secondary">
-                                        {(
-                                          (subscription.price.unit_amount ||
-                                            0) / 100
-                                        ).toLocaleString("pt-BR", {
-                                          style: "currency",
-                                          currency: "BRL",
-                                        })}
-                                        {subscription.price.recurring
-                                          ?.interval === "month" && "/mês"}
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                  <div className="w-4 h-4 flex-shrink-0" />
-                                  <ul className="text-xs text-muted-foreground space-y-1 mt-2">
-                                    {Object.entries(subscription.metadata)
-                                      .filter(([key]) =>
-                                        key.startsWith("advantages_")
-                                      )
-                                      .map(([key, value]) => (
-                                        <li key={key}>
-                                          <span className="text-green-400">
-                                            ✓
-                                          </span>{" "}
-                                          {value}
-                                        </li>
-                                      ))}
-                                  </ul>
-                                </div>
-                              </div>
-                            </label>
-                          ))}
-                        </div>
-                      </RadioGroup>
-                    </div>
-
-                    <DrawerFooter className="mt-auto">
-                      <Button className="w-full" size="lg">
-                        {selectedOption === "one_time"
-                          ? "Comprar Agora"
-                          : "Assinar Plano"}
-                      </Button>
-                      <DrawerClose asChild>
-                        <Button variant="outline">Cancelar</Button>
-                      </DrawerClose>
-                    </DrawerFooter>
-                  </div>
-                </DrawerContent>
-              </Drawer>
+              {templates.has_access ? (
+                <Button
+                  className="w-full"
+                  onClick={() => handleActivateTemplate(templates.id)}
+                  disabled={loadingButton}
+                >
+                  {loadingButton ? (
+                    <Image
+                      src={loadingSvg}
+                      alt="loading"
+                      width={20}
+                      height={20}
+                    />
+                  ) : (
+                    "Ativar Template"
+                  )}
+                </Button>
+              ) : (
+                <PurchaseDrawer
+                  template={templates}
+                  subscriptionTemplates={subscriptionTemplates}
+                />
+              )}
             </div>
           </SwiperSlide>
         ))

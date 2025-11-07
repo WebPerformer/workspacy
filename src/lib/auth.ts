@@ -30,17 +30,20 @@ type ResetPasswordData = {
 
 export async function signInRequest({ email, password, remember }: SigninData) {
   try {
-    const response = await fetch(`${process.env.EXTERNAL_API_URL}/signin`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "CSRF-Token": "random-secure-token",
-      },
-      body: JSON.stringify({
-        email,
-        password,
-      }),
-    });
+    const response = await fetch(
+      `${process.env.EXTERNAL_API_URL}/auth/signin`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "CSRF-Token": "random-secure-token",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      }
+    );
 
     const result = await response.json();
 
@@ -73,15 +76,19 @@ export async function signInRequest({ email, password, remember }: SigninData) {
 
 export async function signUpRequest({ username, email, password }: SignupData) {
   try {
-    const response = await fetch("http://localhost:3001/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username,
-        email,
-        password,
-      }),
-    });
+    const response = await fetch(
+      `${process.env.EXTERNAL_API_URL}/auth/signup`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+        }),
+      }
+    );
+
     const result = await response.json();
 
     if (response.ok) {
@@ -152,7 +159,7 @@ export async function forgotPasswordRequest({ email }: ForgotPasswordData) {
 export async function validateOtpRequest({ email, otp }: ValidateOtpData) {
   try {
     const response = await fetch(
-      `${process.env.EXTERNAL_API_URL}/validate-otp`,
+      `${process.env.EXTERNAL_API_URL}/auth/validate-otp`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -182,7 +189,7 @@ export async function resetPasswordRequest({
 }: ResetPasswordData) {
   try {
     const response = await fetch(
-      `${process.env.EXTERNAL_API_URL}/reset-password`,
+      `${process.env.EXTERNAL_API_URL}/auth/reset-password`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
