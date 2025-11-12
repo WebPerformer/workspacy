@@ -100,29 +100,16 @@ export function StripeCheckout({
 
   const createSubscriptionAfterSetup = async (setupIntent: any) => {
     try {
-      console.log("🔐 Starting subscription creation...");
-
-      console.log("🔐 SetupIntent received:", {
-        status: setupIntent?.status,
-        paymentMethod: setupIntent?.payment_method,
-      });
-
       if (setupIntent?.status === "succeeded" && setupIntent.payment_method) {
-        console.log("🔐 Calling createSubscription API...");
-
         // Chamar seu backend para criar a assinatura
         const result = await createSubscription({
           price_id: priceId,
           payment_method_id: setupIntent.payment_method as string,
         });
 
-        console.log("🔐 Subscription API response:", result);
-
         if (result.success) {
-          console.log("✅ Subscription created successfully");
           onSuccess();
         } else {
-          console.error("❌ Subscription API error:", result.error);
           setError(result.error || "Erro ao criar assinatura");
         }
       } else {
@@ -158,7 +145,7 @@ export function StripeCheckout({
           })}
         </p>
         <p className="text-sm text-muted-foreground">
-          {mode === "subscription" ? "Assinatura mensal" : "Pagamento único"}
+          {mode === "subscription" ? "Assinatura mensal" : "Comprar Template"}
         </p>
       </div>
 
@@ -175,21 +162,16 @@ export function StripeCheckout({
           </div>
         )}
 
-        <div className="flex gap-3 pt-4">
+        <div className="flex justify-end gap-3 pt-4">
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             onClick={onCancel}
             disabled={loading}
-            className="flex-1"
           >
             Cancelar
           </Button>
-          <Button
-            type="submit"
-            disabled={!stripe || loading}
-            className="flex-1"
-          >
+          <Button type="submit" disabled={!stripe || loading}>
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

@@ -123,16 +123,16 @@ function Avatar() {
           </div>
         ))}
       </div>
-      <div className="flex gap-2">
+      <div className="flex items-center justify-end gap-2">
+        <Link href="/">
+          <Button variant="secondary">Cancelar</Button>
+        </Link>
         <Button
           disabled={selectedAvatar === null}
           onClick={() => handleUpdateProfileImage(selectedAvatar!)}
         >
           Escolher esse
         </Button>
-        <Link href="/">
-          <Button variant="secondary">Cancelar</Button>
-        </Link>
       </div>
     </section>
   );

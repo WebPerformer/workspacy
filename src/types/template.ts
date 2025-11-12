@@ -8,6 +8,7 @@ export interface Template {
     category?: string;
     included?: string;
     tier?: string;
+    preview: string;
     [key: string]: string | Record<string, string> | undefined;
   };
   tier: string;

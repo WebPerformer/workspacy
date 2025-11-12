@@ -9,6 +9,14 @@ export type User = {
   role: "admin" | "user";
 };
 
+export interface UserConfig {
+  id: string;
+  selected_template_id: string | null;
+  portfolio_data: any;
+  is_portfolio_configured: boolean;
+  stripe_customer_id: string | null;
+}
+
 type ChangeUsernameData = {
   username: string;
 };
@@ -156,5 +164,46 @@ export async function DeleteProfile() {
   } catch (error) {
     console.error("Erro:", error);
     return { success: false, data: error };
+  }
+}
+
+export async function getUserConfig() {
+  try {
+    const token = (await cookies()).get("token")?.value;
+    if (!token) {
+      console.warn("Nenhum token encontrado nos cookies.");
+      return null;
+    }
+
+    const response = await fetch(
+      `${process.env.EXTERNAL_API_URL}/user/config`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+      }
+    );
+
+    if (!response.ok) {
+      console.error(
+        "Erro ao obter configurações do usuário:",
+        response.statusText
+      );
+      return null;
+    }
+
+    const result = await response.json();
+
+    if (result.success) {
+      return result.data; // Retorna o UserConfig completo
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error("Erro ao obter configurações do usuário:", error);
+    return null;
   }
 }
