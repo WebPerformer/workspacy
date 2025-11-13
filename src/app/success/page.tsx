@@ -16,7 +16,7 @@ export default function SuccessPage() {
     const checktemplateConfig = async () => {
       try {
         const userConfig = await getUserConfig();
-        setIsConfigured(userConfig?.is_portfolio_configured || false);
+        setIsConfigured(userConfig?.is_template_configured || false);
       } catch (error) {
         console.error("Error checking template config:", error);
         setIsConfigured(false);

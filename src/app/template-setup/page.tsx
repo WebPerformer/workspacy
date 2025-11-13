@@ -1,13 +1,15 @@
-// TemplateSetup com CategoryDialog
 "use client";
 
 import { Input } from "@/src/components/ui/input";
-import { Check, Edit, Plus, X } from "lucide-react";
-import { useState } from "react";
+import { Check, Edit, Plus } from "lucide-react";
+import { useState, useEffect, useContext } from "react";
 import { Textarea } from "@/src/components/ui/textarea";
 import { useRouter } from "next/navigation";
 import { Button } from "@/src/components/ui/button";
 import { Label } from "@/src/components/ui/label";
+
+// Importe o AuthContext
+import { AuthContext } from "@/src/contexts/AuthContext";
 
 // Importações para validação
 import { z } from "zod";
@@ -25,6 +27,7 @@ import {
 
 // Componente do Dialog
 import { CategoryDialog } from "@/src/components/templates/templates-category-dialog";
+import { getUserConfig, updateUserConfig } from "@/src/lib/user";
 
 // Schema de validação
 const portfolioFormSchema = z.object({
@@ -61,24 +64,67 @@ const portfolioFormSchema = z.object({
 
 type PortfolioForm = z.infer<typeof portfolioFormSchema>;
 
-interface ImageFile {
-  file: File;
-  preview: string;
-  uploadedUrl?: string;
+interface PortfolioImage {
+  url: string;
+  filename: string;
+  key: string;
+  uploaded_at: Date;
+  size: number;
+  metadata?: {
+    categoryId?: string;
+    userId?: string;
+    description?: string;
+  };
 }
 
 interface Category {
   id: string;
   name: string;
-  images: ImageFile[];
+  images: PortfolioImage[];
 }
 
 export default function TemplateSetup() {
+  const { user } = useContext(AuthContext);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const router = useRouter();
+
+  const userId = user?.id?.toString() || "";
+
+  useEffect(() => {
+    const fetchExistingData = async () => {
+      try {
+        if (userId) {
+          const userConfig = await getUserConfig();
+
+          if (userConfig && userConfig.template_data) {
+            const templateData = userConfig.template_data;
+
+            form.reset({
+              url: templateData.url || "",
+              description: templateData.description || "",
+              instagram: templateData.instagram || "",
+              twitter: templateData.twitter || "",
+              whatsapp: templateData.whatsapp || "",
+            });
+
+            if (templateData.categories && templateData.categories.length > 0) {
+              setCategories(templateData.categories);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+
+    fetchExistingData();
+  }, [userId]);
 
   // Calcular total de imagens
   const totalImages = categories.reduce(
@@ -111,72 +157,53 @@ export default function TemplateSetup() {
     setDialogOpen(true);
   };
 
-  // Salvar categoria (criação ou edição)
-  const handleSaveCategory = (categoryData: Omit<Category, "id">) => {
+  // Atualizar lista de categorias quando salvar no Dialog
+  const handleSaveCategory = (savedCategory: Category) => {
     if (editingCategory) {
-      // Editar categoria existente
+      // Atualizar categoria existente
       setCategories((prev) =>
-        prev.map((cat) =>
-          cat.id === editingCategory.id ? { ...cat, ...categoryData } : cat
-        )
+        prev.map((cat) => (cat.id === editingCategory.id ? savedCategory : cat))
       );
     } else {
-      // Criar nova categoria
-      const newCategory: Category = {
-        id: Date.now().toString(),
-        ...categoryData,
-      };
-      setCategories((prev) => [...prev, newCategory]);
+      // Adicionar nova categoria
+      setCategories((prev) => [...prev, savedCategory]);
     }
   };
 
-  // Remover categoria
-  const removeCategory = (categoryId: string) => {
+  // Remover categoria da lista local quando deletar no Dialog
+  const handleDeleteCategory = (categoryId: string) => {
     setCategories((prev) => prev.filter((cat) => cat.id !== categoryId));
   };
 
-  // Limpar todas as categorias
-  const clearAllCategories = () => {
-    setCategories([]);
-  };
-
-  // Função para enviar os dados para o backend
+  // Salvar apenas as informações do template (URL, descrição, redes sociais)
   async function onSubmit(data: PortfolioForm) {
-    if (categories.length === 0) {
-      toast.error("Adicione pelo menos uma categoria com imagens");
-      return;
-    }
-
     setLoading(true);
 
     try {
-      // Preparar os dados para enviar
-      const payload = {
-        ...data,
-        categories: categories.map((cat) => ({
-          name: cat.name,
-          images: cat.images.map((img) => ({
-            url: img.uploadedUrl,
-            // Outros metadados da imagem se necessário
-          })),
-        })),
+      // Buscar configuração atual para manter as categorias existentes
+      const userConfig = await getUserConfig();
+      const currentTemplateData = userConfig?.template_data || {};
+
+      // Garantir que mantemos as categorias existentes com estrutura completa
+      const portfolioConfig = {
+        url: data.url,
+        description: data.description,
+        instagram: data.instagram || "",
+        twitter: data.twitter || "",
+        whatsapp: data.whatsapp || "",
+        categories: currentTemplateData.categories || [], // Manter categorias existentes
       };
 
-      // Fazer a requisição para o backend
-      const response = await fetch("/api/user-config/portfolio", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+      const result = await updateUserConfig({
+        template_data: portfolioConfig,
+        is_template_configured: true,
       });
 
-      if (response.ok) {
+      if (result.success) {
         toast.success("Configurações salvas com sucesso!");
         router.push("/dashboard");
       } else {
-        const error = await response.json();
-        toast.error(error.message || "Erro ao salvar configurações");
+        toast.error(result.error || "Erro ao salvar configurações");
       }
     } catch (error) {
       toast.error("Erro de conexão. Tente novamente.");
@@ -184,6 +211,16 @@ export default function TemplateSetup() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (initialLoading) {
+    return (
+      <section className="max-w-[440px] mx-auto space-y-10">
+        <div className="flex justify-center items-center h-40">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -235,7 +272,7 @@ export default function TemplateSetup() {
             <div className="space-y-0.5">
               <h5 className="text-base">Catálogos</h5>
               <p className="text-muted-foreground">
-                Crie categorias e adicione imagens para seu template.
+                Crie e gerencie seus catálogos de imagens.
               </p>
             </div>
 
@@ -245,17 +282,9 @@ export default function TemplateSetup() {
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">
                     {totalImages}/{maxTotalImages} imagens em{" "}
-                    {categories.length} categoria
+                    {categories.length} catálogo
                     {categories.length !== 1 ? "s" : ""}
                   </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearAllCategories}
-                  >
-                    Remover todas
-                  </Button>
                 </div>
 
                 {categories.map((category) => (
@@ -270,24 +299,14 @@ export default function TemplateSetup() {
                         {category.images.length !== 1 ? "ens" : ""}
                       </p>
                     </div>
-                    <div className="flex gap-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openEditCategory(category)}
-                      >
-                        <Edit size={14} />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeCategory(category.id)}
-                      >
-                        <X size={14} />
-                      </Button>
-                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openEditCategory(category)}
+                    >
+                      <Edit size={14} />
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -310,8 +329,10 @@ export default function TemplateSetup() {
               mode={editingCategory ? "edit" : "create"}
               category={editingCategory || undefined}
               onSave={handleSaveCategory}
+              onDelete={handleDeleteCategory}
               totalImages={totalImages}
               maxTotalImages={maxTotalImages}
+              userId={userId}
             />
 
             <div className="flex justify-between text-xs text-muted-foreground mt-2">
@@ -421,7 +442,7 @@ export default function TemplateSetup() {
             </div>
           </div>
 
-          {/* Botões de Ação */}
+          {/* Botões de Ação - AGORA SÓ SALVA URL, DESCRIÇÃO E REDES SOCIAIS */}
           <div className="flex items-center justify-end gap-3">
             <Button
               variant="secondary"
@@ -430,7 +451,7 @@ export default function TemplateSetup() {
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading || categories.length === 0}>
+            <Button type="submit" disabled={loading}>
               {loading ? "Salvando..." : "Salvar Configurações"}
             </Button>
           </div>

@@ -159,20 +159,20 @@ export default function ProductsCards() {
     });
 
     useEffect(() => {
-      const checkPortfolioConfig = async () => {
+      const checkTemplateConfig = async () => {
         try {
           const userConfig = await getUserConfig();
           setConfig({
-            isConfigured: userConfig?.is_portfolio_configured || false,
+            isConfigured: userConfig?.is_template_configured || false,
             loading: false,
           });
         } catch (error) {
-          console.error("Error checking portfolio config:", error);
+          console.error("Error checking template config:", error);
           setConfig({ isConfigured: false, loading: false });
         }
       };
 
-      checkPortfolioConfig();
+      checkTemplateConfig();
     }, []);
 
     return config;

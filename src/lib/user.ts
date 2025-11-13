@@ -12,9 +12,37 @@ export type User = {
 export interface UserConfig {
   id: string;
   selected_template_id: string | null;
-  portfolio_data: any;
-  is_portfolio_configured: boolean;
+  template_data: any;
+  is_template_configured: boolean;
   stripe_customer_id: string | null;
+}
+
+export interface TemplateImage {
+  url: string;
+  filename: string;
+  key: string;
+  uploaded_at: Date;
+  size: number;
+  metadata?: {
+    categoryId?: string;
+    userId?: string;
+    description?: string;
+  };
+}
+
+export interface TemplateCategory {
+  id: string;
+  name: string;
+  images: TemplateImage[];
+}
+
+export interface TemplateData {
+  url: string;
+  description: string;
+  instagram?: string;
+  twitter?: string;
+  whatsapp?: string;
+  categories: TemplateCategory[];
 }
 
 type ChangeUsernameData = {
@@ -205,5 +233,44 @@ export async function getUserConfig() {
   } catch (error) {
     console.error("Erro ao obter configurações do usuário:", error);
     return null;
+  }
+}
+
+export async function updateUserConfig(configData: {
+  template_data?: TemplateData;
+  selected_template_id?: string;
+  is_template_configured?: boolean;
+}): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const token = (await cookies()).get("token")?.value;
+    if (!token) {
+      return { success: false, error: "Não autenticado" };
+    }
+
+    const response = await fetch(
+      `${process.env.EXTERNAL_API_URL}/user/config`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(configData),
+      }
+    );
+
+    const result = await response.json();
+
+    if (response.ok) {
+      return { success: true, data: result.data };
+    } else {
+      return {
+        success: false,
+        error: result.error || "Erro ao salvar configurações",
+      };
+    }
+  } catch (error) {
+    console.error("Erro ao salvar configurações:", error);
+    return { success: false, error: "Erro de conexão" };
   }
 }
