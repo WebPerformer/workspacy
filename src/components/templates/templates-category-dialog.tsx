@@ -16,42 +16,23 @@ import {
   Dropzone,
   DropzoneEmptyState,
 } from "@/src/components/ui/shadcn-io/dropzone";
-import { X } from "lucide-react";
+import { MessageSquareWarning, X } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
-
-interface TemplateImage {
-  url: string;
-  filename: string;
-  key: string;
-  uploaded_at: Date;
-  size: number;
-  file?: File;
-  preview?: string;
-  metadata?: {
-    categoryId?: string;
-    userId?: string;
-    description?: string;
-  };
-}
-
-interface Category {
-  id: string;
-  name: string;
-  images: TemplateImage[];
-}
-
-interface CategoryDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  mode: "create" | "edit";
-  category?: Category;
-  onSave: (category: Category) => void;
-  onDelete?: (categoryId: string) => void;
-  totalImages: number;
-  maxTotalImages: number;
-  userId: string;
-}
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation } from "swiper/modules";
+import "swiper/css";
+import {
+  deleteCloudinaryImage,
+  deleteCloudinaryImages,
+  uploadToCloudinary,
+} from "@/src/lib/cloudinary";
+import {
+  CategoryDialogProps,
+  UserConfigCategory,
+  UserConfigImage,
+} from "@/src/types/user";
+import { getUserConfig, updateUserConfig } from "@/src/lib/user";
 
 export function CategoryDialog({
   open,
@@ -59,15 +40,29 @@ export function CategoryDialog({
   mode,
   category,
   onSave,
-  onDelete,
-  totalImages,
+  categories,
   maxTotalImages,
   userId,
 }: CategoryDialogProps) {
   const [categoryName, setCategoryName] = useState(category?.name || "");
-  const [images, setImages] = useState<TemplateImage[]>(category?.images || []);
+  const [images, setImages] = useState<UserConfigImage[]>(
+    category?.images || []
+  );
   const [uploading, setUploading] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [removedImages, setRemovedImages] = useState<UserConfigImage[]>([]);
+
+  // Calcular total de imagens em tempo real considerando TODAS as categorias
+  const calculateTotalImages = () => {
+    return categories.reduce((total, cat) => {
+      // Se estiver editando, não contar as imagens da categoria atual (serão substituídas)
+      if (mode === "edit" && category && cat.id === category.id) {
+        return total;
+      }
+      return total + cat.images.length;
+    }, 0);
+  };
+
+  const totalImages = calculateTotalImages();
 
   const imagesRemaining = maxTotalImages - totalImages;
   const canAddMoreImages = imagesRemaining > 0;
@@ -83,19 +78,12 @@ export function CategoryDialog({
   }, [open, category]);
 
   const handleDrop = (files: File[]) => {
-    if (!canAddMoreImages) {
-      toast.error(`Limite total de ${maxTotalImages} imagens atingido`);
-      return;
-    }
-
     if (!userId) {
       toast.error("Usuário não identificado. Faça login novamente.");
       return;
     }
 
-    const filesToAdd = files.slice(0, imagesRemaining);
-
-    const newImages: TemplateImage[] = filesToAdd.map((file) => ({
+    const newImages: UserConfigImage[] = files.map((file) => ({
       file,
       preview: URL.createObjectURL(file),
       url: "",
@@ -113,39 +101,35 @@ export function CategoryDialog({
 
   const uploadImages = async (
     finalCategoryId: string
-  ): Promise<TemplateImage[]> => {
-    const uploadedImages: TemplateImage[] = [];
+  ): Promise<UserConfigImage[]> => {
+    const uploadedImages: UserConfigImage[] = [];
 
-    for (const image of images) {
-      if (image.url && image.key) {
-        uploadedImages.push(image);
-        continue;
-      }
+    const uploadCategoryId = category?.id || finalCategoryId;
+
+    // Separar imagens que precisam de upload das que já existem
+    const existingImages = images.filter((img) => img.url && img.key);
+    const newImages = images.filter((img) => !img.url || !img.key);
+
+    // Fazer upload apenas das novas imagens
+    for (const image of newImages) {
+      if (!image.file) continue;
 
       try {
-        const formData = new FormData();
-        formData.append("file", image.file!);
-        formData.append("userId", userId);
-        formData.append("categoryId", finalCategoryId);
+        const uploadResult = await uploadToCloudinary(
+          image.file,
+          userId,
+          uploadCategoryId
+        );
 
-        const response = await fetch("/api/cloudflare/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error(`Falha no upload: ${response.status}`);
-        }
-
-        const result = await response.json();
-
-        if (result.success) {
-          uploadedImages.push(result.data);
+        if (uploadResult.success) {
+          uploadedImages.push(uploadResult.data);
           if (image.preview) {
             URL.revokeObjectURL(image.preview);
           }
         } else {
-          throw new Error("Upload falhou");
+          throw new Error(
+            `Falha ao enviar imagem ${image.filename}: ${uploadResult.data}`
+          );
         }
       } catch (error) {
         console.error("Erro ao fazer upload da imagem:", error);
@@ -153,79 +137,7 @@ export function CategoryDialog({
       }
     }
 
-    return uploadedImages;
-  };
-
-  const saveToBackend = async (categoryData: Category) => {
-    try {
-      // Buscar configuração atual
-      const response = await fetch("/api/user/config", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erro ao buscar configurações: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || "Erro ao buscar configurações");
-      }
-
-      const currentConfig = result.data;
-      const currentCategories = currentConfig.template_data?.categories || [];
-
-      // Atualizar categorias
-      let updatedCategories: Category[];
-
-      if (mode === "edit" && category) {
-        updatedCategories = currentCategories.map((cat: Category) =>
-          cat.id === category.id ? categoryData : cat
-        );
-      } else {
-        updatedCategories = [...currentCategories, categoryData];
-      }
-
-      // Salvar no backend - agora envia template_data com categorias
-      const updateResponse = await fetch("/api/user/config", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          template_data: {
-            url: currentConfig.template_data?.url || "",
-            description: currentConfig.template_data?.description || "",
-            instagram: currentConfig.template_data?.instagram || "",
-            twitter: currentConfig.template_data?.twitter || "",
-            whatsapp: currentConfig.template_data?.whatsapp || "",
-            categories: updatedCategories,
-          },
-        }),
-      });
-
-      if (!updateResponse.ok) {
-        const errorResult = await updateResponse.json();
-        throw new Error(
-          errorResult.error || `Erro ${updateResponse.status} ao salvar`
-        );
-      }
-
-      const updateResult = await updateResponse.json();
-
-      if (!updateResult.success) {
-        throw new Error(updateResult.error || "Erro ao salvar no servidor");
-      }
-
-      return updateResult;
-    } catch (error) {
-      console.error("Erro em saveToBackend:", error);
-      throw error;
-    }
+    return [...existingImages, ...uploadedImages];
   };
 
   const handleSave = async () => {
@@ -239,19 +151,78 @@ export function CategoryDialog({
       return;
     }
 
+    // Validação de limite
+    const currentTotal = calculateTotalImages();
+    const finalTotal = currentTotal + images.length;
+
+    if (finalTotal > maxTotalImages) {
+      const excessImages = finalTotal - maxTotalImages;
+      toast.error(
+        `Limite de ${maxTotalImages} imagens excedido em ${excessImages} imagem(ns). ` +
+          `Remova ${excessImages} imagem(ns) para continuar.`
+      );
+      return;
+    }
+
     setUploading(true);
 
     try {
       const finalCategoryId = category?.id || `category-${Date.now()}`;
+
+      // Tentar deletar imagens marcadas do Cloudinary
+      const deleteResult = await deleteMarkedImages();
+
+      // SE A DELEÇÃO FALHOU, CANCELAMOS A OPERAÇÃO COMPLETA
+      if (!deleteResult.success) {
+        throw new Error(
+          deleteResult.error || "Falha ao deletar imagens do Cloudinary"
+        );
+      }
+
+      // 2. Só continuamos se TODAS as deleções foram bem-sucedidas
+      // Limpar a lista de imagens removidas apenas se a deleção foi bem-sucedida
+      setRemovedImages([]);
+
+      // 3. Fazer upload das novas imagens
       const uploadedImages = await uploadImages(finalCategoryId);
 
-      const categoryData: Category = {
+      // 4. Preparar dados da categoria
+      const categoryData: UserConfigCategory = {
         id: finalCategoryId,
         name: categoryName.trim(),
         images: uploadedImages,
       };
 
-      await saveToBackend(categoryData);
+      // 5. Buscar configuração atual
+      const currentConfig = await getUserConfig();
+      if (!currentConfig) {
+        throw new Error("Erro ao buscar configurações do usuário");
+      }
+
+      const currentCategories = currentConfig.template_data?.categories || [];
+      let updatedCategories: UserConfigCategory[];
+
+      if (mode === "edit" && category) {
+        updatedCategories = currentCategories.map((cat: UserConfigCategory) =>
+          cat.id === category.id ? categoryData : cat
+        );
+      } else {
+        updatedCategories = [...currentCategories, categoryData];
+      }
+
+      // 6. Salvar no backend (banco de dados)
+      const updateResult = await updateUserConfig({
+        template_data: {
+          ...currentConfig.template_data,
+          categories: updatedCategories,
+        },
+      });
+
+      if (!updateResult.success) {
+        throw new Error(updateResult.error || "Erro ao salvar no servidor");
+      }
+
+      // 7. SÓ AQUI: Operação completa bem-sucedida
       onSave(categoryData);
 
       toast.success(
@@ -261,113 +232,95 @@ export function CategoryDialog({
       );
 
       onOpenChange(false);
-    } catch (error) {
-      console.error("Erro ao salvar categoria:", error);
-      toast.error("Erro ao salvar catálogo");
+    } catch (error: any) {
+      console.error("❌ Erro ao salvar categoria:", error);
+
+      // Mensagem de erro específica para problemas de sincronia
+      if (error.message.includes("sincronia")) {
+        toast.error(
+          "Problema de sincronia com o armazenamento de imagens. " +
+            "Suas imagens no banco de dados foram preservadas. " +
+            "Tente novamente ou entre em contato com o suporte."
+        );
+      } else {
+        toast.error(
+          error.message || "Erro ao salvar categoria. Tente novamente."
+        );
+      }
     } finally {
       setUploading(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (!category || !onDelete) return;
-
-    setDeleting(true);
-
-    try {
-      // Buscar configuração atual
-      const response = await fetch("/api/user/config", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Erro ao buscar configurações");
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
-        const currentConfig = result.data;
-
-        // Garantir que template_data existe com estrutura completa
-        if (!currentConfig.template_data) {
-          currentConfig.template_data = {
-            url: "",
-            description: "",
-            categories: [],
-          };
-        }
-
-        // Remover a categoria mantendo a estrutura completa
-        const updatedCategories = currentConfig.template_data.categories.filter(
-          (cat: Category) => cat.id !== category.id
-        );
-
-        // Deletar imagens do Cloudflare
-        for (const image of category.images) {
-          try {
-            await fetch("/api/cloudflare/delete", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ key: image.key }),
-            });
-          } catch (error) {
-            console.error("Erro ao deletar imagem:", error);
-          }
-        }
-
-        // Atualizar no backend mantendo toda a estrutura
-        const updateResponse = await fetch("/api/user/config", {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            template_data: {
-              url: currentConfig.template_data.url || "",
-              description: currentConfig.template_data.description || "",
-              instagram: currentConfig.template_data.instagram || "",
-              twitter: currentConfig.template_data.twitter || "",
-              whatsapp: currentConfig.template_data.whatsapp || "",
-              categories: updatedCategories,
-            },
-          }),
-        });
-
-        const updateResult = await updateResponse.json();
-
-        if (updateResponse.ok && updateResult.success) {
-          onDelete(category.id);
-          toast.success(`Catálogo "${category.name}" removido!`);
-          onOpenChange(false);
-        } else {
-          throw new Error(updateResult.error || "Erro ao remover catálogo");
-        }
-      } else {
-        throw new Error(result.error || "Erro ao buscar configurações");
-      }
-    } catch (error) {
-      console.error("Erro ao deletar categoria:", error);
-      toast.error("Erro ao remover catálogo");
-    } finally {
-      setDeleting(false);
+  const deleteMarkedImages = async (): Promise<{
+    success: boolean;
+    deletedCount: number;
+    error?: string;
+  }> => {
+    if (removedImages.length === 0) {
+      return { success: true, deletedCount: 0 };
     }
+
+    // Filtrar apenas imagens que têm key (já foram upload)
+    const imagesToDelete = removedImages.filter((img) => img.key);
+
+    if (imagesToDelete.length === 0) {
+      return { success: true, deletedCount: 0 };
+    }
+
+    console.log(
+      `🗑️ Tentando deletar ${imagesToDelete.length} imagens do Cloudinary...`
+    );
+
+    // Usando a mesma função que você já tem para deletar múltiplas imagens
+    const deleteResult = await deleteCloudinaryImages(
+      imagesToDelete.map((img) => img.key!)
+    );
+
+    if (deleteResult.failed.length > 0) {
+      console.error("❌ Falha na deleção de imagens:", deleteResult.failed);
+
+      // SE ALGUMA IMAGEM FALHOU NA DELEÇÃO, CANCELAMOS TUDO
+      return {
+        success: false,
+        deletedCount: deleteResult.deleted.length,
+        error: `Falha ao deletar ${deleteResult.failed.length} imagem(ns) do Cloudinary. Operação cancelada para manter sincronia.`,
+      };
+    }
+
+    console.log(
+      `✅ Todas as ${deleteResult.deleted.length} imagens deletadas com sucesso`
+    );
+    return {
+      success: true,
+      deletedCount: deleteResult.deleted.length,
+    };
   };
 
-  const removeImage = (index: number) => {
+  const handleRemoveImageClick = (index: number) => {
     const imageToRemove = images[index];
-    if (imageToRemove.preview) {
+
+    // Se a imagem já foi upada para o Cloudinary (tem key), marca para deleção
+    if (imageToRemove.key) {
+      setRemovedImages((prev) => [...prev, imageToRemove]);
+    }
+
+    // Remove preview se for imagem nova (não upada ainda)
+    if (imageToRemove.preview && !imageToRemove.url) {
       URL.revokeObjectURL(imageToRemove.preview);
     }
+
     setImages((prev) => prev.filter((_, i) => i !== index));
+
+    toast.success(
+      imageToRemove.key
+        ? "Imagem marcada para remoção (salve para confirmar)"
+        : "Imagem removida"
+    );
   };
 
   const handleClose = () => {
+    // Limpar previews de imagens não salvas
     images.forEach((image) => {
       if (image.preview && !image.url) {
         URL.revokeObjectURL(image.preview);
@@ -376,6 +329,7 @@ export function CategoryDialog({
 
     setCategoryName(category?.name || "");
     setImages(category?.images || []);
+    setRemovedImages([]);
     onOpenChange(false);
   };
 
@@ -387,7 +341,7 @@ export function CategoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>{dialogDescription}</DialogDescription>
@@ -400,85 +354,113 @@ export function CategoryDialog({
               placeholder="Ex: Casamento, Ensaios, Eventos..."
               value={categoryName}
               onChange={(e) => setCategoryName(e.target.value)}
-              disabled={uploading || deleting}
+              disabled={uploading}
             />
           </div>
         </div>
 
         <Dropzone
           accept={{ "image/*": [] }}
-          maxFiles={imagesRemaining}
+          maxFiles={999}
           maxSize={1024 * 1024 * 10}
           minSize={1024}
           onDrop={handleDrop}
           onError={(error) => {
             toast.error(`Erro ao carregar imagens: ${error}`);
           }}
-          disabled={!canAddMoreImages || uploading || deleting}
+          disabled={!canAddMoreImages || uploading}
         >
           <DropzoneEmptyState />
         </Dropzone>
 
         {images.length > 0 && (
-          <div className="mt-4">
+          <div className="w-full mt-4 min-w-14">
             <Label className="text-sm mb-2 block">
-              Pré-visualização ({images.length}/{maxTotalImages})
-              {uploading && " - Enviando..."}
-              {!canAddMoreImages && !uploading && " - Limite atingido"}
+              Pré-visualização ({images.length} imagens nesta categoria)
             </Label>
-            <div className="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto">
-              {images.map((image, index) => (
-                <div
-                  key={image.key || index}
-                  className="relative group aspect-video"
-                >
-                  <div className="relative w-full h-full rounded-md overflow-hidden border">
-                    <Image
-                      src={image.preview || image.url}
-                      alt={`Preview ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      sizes="80px"
-                    />
-                    {uploading && (
-                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      </div>
-                    )}
+
+            {/* Mostrar alerta visual se exceder o limite */}
+            {(() => {
+              const currentTotal = calculateTotalImages();
+              const finalTotal = currentTotal + images.length;
+              const excessImages = finalTotal - maxTotalImages;
+
+              if (excessImages > 0) {
+                return (
+                  <div className="mb-3 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                    <p className="text-destructive text-sm font-medium">
+                      <MessageSquareWarning size={20} /> Limite excedido em{" "}
+                      {excessImages} imagem(ns)
+                    </p>
+                    <p className="text-destructive/80 text-xs mt-1">
+                      Remova {excessImages} imagem(ns) ou ajuste outros
+                      catálogos para salvar
+                    </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
-                    className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                    disabled={uploading || deleting}
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
+                );
+              }
+              return null;
+            })()}
+
+            {/* SWIPER PARA AS IMAGENS */}
+            <Swiper spaceBetween={8} slidesPerView={2.2} modules={[Navigation]}>
+              {images.map((image, index) => (
+                <SwiperSlide key={image.key || index}>
+                  <div className="relative aspect-video">
+                    <div className="relative w-full h-full rounded-md overflow-hidden border">
+                      <Image
+                        src={image.preview || image.url}
+                        alt={`Preview ${index + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                      {uploading && (
+                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                          <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImageClick(index)}
+                      className="absolute top-1 right-1 bg-popover rounded-full p-0.5 z-10"
+                      disabled={uploading}
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                </SwiperSlide>
               ))}
+            </Swiper>
+
+            {/* Informações do limite */}
+            <div className="flex justify-between text-xs text-muted-foreground mt-2">
+              <span>
+                Total global: {calculateTotalImages() + images.length}/
+                {maxTotalImages}
+                {(() => {
+                  const currentTotal = calculateTotalImages();
+                  const finalTotal = currentTotal + images.length;
+                  const excessImages = finalTotal - maxTotalImages;
+
+                  if (excessImages > 0) {
+                    return ` (+${excessImages})`;
+                  }
+                  return "";
+                })()}
+              </span>
+              <span>{images.length} selecionada(s)</span>
             </div>
           </div>
         )}
 
         <DialogFooter className="flex justify-between">
-          <div>
-            {mode === "edit" && category && (
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={handleDelete}
-                disabled={deleting || uploading}
-              >
-                {deleting ? "Removendo..." : "Remover Catálogo"}
-              </Button>
-            )}
-          </div>
           <div className="flex gap-2">
             <Button
               variant="outline"
               type="button"
               onClick={handleClose}
-              disabled={uploading || deleting}
+              disabled={uploading}
             >
               Cancelar
             </Button>
@@ -486,10 +468,7 @@ export function CategoryDialog({
               type="button"
               onClick={handleSave}
               disabled={
-                !categoryName.trim() ||
-                images.length === 0 ||
-                uploading ||
-                deleting
+                !categoryName.trim() || images.length === 0 || uploading
               }
             >
               {uploading

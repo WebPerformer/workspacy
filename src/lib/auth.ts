@@ -1,32 +1,15 @@
 "use server";
 import { cookies } from "next/headers";
 
-type SigninData = {
-  email: string;
-  password: string;
-  remember?: boolean | undefined;
-};
+import {
+  ForgotPasswordData,
+  ResetPasswordData,
+  SigninData,
+  SignupData,
+  ValidateOtpData,
+} from "../types/auth";
 
-type SignupData = {
-  username: string;
-  email: string;
-  password: string;
-};
-
-type ForgotPasswordData = {
-  email: string;
-};
-
-type ValidateOtpData = {
-  email: string;
-  otp: string;
-};
-
-type ResetPasswordData = {
-  email: string;
-  otp: string;
-  newPassword: string;
-};
+import "@/envConfig";
 
 export async function signInRequest({ email, password, remember }: SigninData) {
   try {
@@ -107,8 +90,8 @@ export async function getGoogleOAuthURL() {
   const rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
 
   const options = {
-    redirect_uri: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_REDIRECT_URL as string,
-    client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID as string,
+    redirect_uri: process.env.GOOGLE_OAUTH_REDIRECT_URL as string,
+    client_id: process.env.GOOGLE_CLIENT_ID as string,
     access_type: "offline",
     response_type: "code",
     prompt: "consent",

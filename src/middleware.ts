@@ -21,10 +21,16 @@ export function middleware(req: NextRequest) {
     "/one-time-password",
   ];
 
+  const isPublicTemplateRoute = /^\/[^\/]+\/[^\/]+$/.test(path);
+
   if (path === "/api/stripe/webhook" || path === "/api/google/callback")
     return NextResponse.next();
 
-  if (!token && !publicPaths.some((p) => path.startsWith(p))) {
+  if (
+    !token &&
+    !publicPaths.some((p) => path.startsWith(p)) &&
+    !isPublicTemplateRoute
+  ) {
     return NextResponse.redirect(new URL("/signin", req.nextUrl.origin));
   }
 

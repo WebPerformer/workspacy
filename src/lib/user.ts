@@ -1,61 +1,15 @@
 "use server";
 import { cookies } from "next/headers";
 
-export type User = {
-  id: number;
-  username: string;
-  email: string;
-  profileImage: string;
-  role: "admin" | "user";
-};
-
-export interface UserConfig {
-  id: string;
-  selected_template_id: string | null;
-  template_data: any;
-  is_template_configured: boolean;
-  stripe_customer_id: string | null;
-}
-
-export interface TemplateImage {
-  url: string;
-  filename: string;
-  key: string;
-  uploaded_at: Date;
-  size: number;
-  metadata?: {
-    categoryId?: string;
-    userId?: string;
-    description?: string;
-  };
-}
-
-export interface TemplateCategory {
-  id: string;
-  name: string;
-  images: TemplateImage[];
-}
-
-export interface TemplateData {
-  url: string;
-  description: string;
-  instagram?: string;
-  twitter?: string;
-  whatsapp?: string;
-  categories: TemplateCategory[];
-}
-
-type ChangeUsernameData = {
-  username: string;
-};
-
-type ChangePasswordData = {
-  password: string;
-};
-
-type UpdateImageData = {
-  profileImage: string;
-};
+import {
+  User,
+  ChangeUsernameData,
+  ChangePasswordData,
+  UpdateImageData,
+  UserConfigData,
+  UserConfigCategory,
+} from "../types/user";
+import { deleteCloudinaryImage, deleteCloudinaryFolder } from "./cloudinary";
 
 export async function getUserProfile(): Promise<User | null> {
   try {
@@ -226,7 +180,7 @@ export async function getUserConfig() {
     const result = await response.json();
 
     if (result.success) {
-      return result.data; // Retorna o UserConfig completo
+      return result.data;
     } else {
       return null;
     }
@@ -237,7 +191,7 @@ export async function getUserConfig() {
 }
 
 export async function updateUserConfig(configData: {
-  template_data?: TemplateData;
+  template_data?: UserConfigData;
   selected_template_id?: string;
   is_template_configured?: boolean;
 }): Promise<{ success: boolean; data?: any; error?: string }> {
@@ -272,5 +226,135 @@ export async function updateUserConfig(configData: {
   } catch (error) {
     console.error("Erro ao salvar configurações:", error);
     return { success: false, error: "Erro de conexão" };
+  }
+}
+
+export async function deleteCategoryConfig(
+  category: UserConfigCategory,
+  userId: string
+): Promise<{ success: boolean; data: any }> {
+  try {
+    const token = (await cookies()).get("token")?.value;
+    if (!token) {
+      return { success: false, data: { message: "Não autenticado" } };
+    }
+
+    // 1. PRIMEIRO: Deletar TODAS as imagens do Cloudinary individualmente
+    const deletePromises = category.images
+      .filter((img) => img.key) // Só imagens que têm key (já foram upadas)
+      .map((img) => deleteCloudinaryImage(img.key!));
+
+    const deleteResults = await Promise.all(deletePromises);
+
+    // Verificar se todas as deleções foram bem sucedidas
+    const allDeletesSuccessful = deleteResults.every(
+      (result) => result.success
+    );
+
+    if (!allDeletesSuccessful) {
+      const failedCount = deleteResults.filter(
+        (result) => !result.success
+      ).length;
+      return {
+        success: false,
+        data: {
+          message: `Falha ao deletar ${failedCount} imagem(ns) do Cloudinary`,
+        },
+      };
+    }
+
+    // 2. DEPOIS DE DELETAR TODAS AS IMAGENS: Deletar a pasta do Cloudinary
+    const folderPath = `users/${userId}/categories/${category.id}`;
+    const folderDeleteResult = await deleteCloudinaryFolder(folderPath);
+
+    if (!folderDeleteResult.success) {
+      console.warn(
+        `Aviso: Não foi possível deletar a pasta ${folderPath} do Cloudinary, mas as imagens foram removidas.`
+      );
+      // Não retornamos erro aqui porque as imagens já foram deletadas
+      // Apenas registramos o aviso e continuamos
+    }
+
+    // 3. SÓ SE TODAS AS IMAGENS FORAM DELETADAS: Deletar do banco de dados
+    const userConfig = await getUserConfig();
+    if (!userConfig?.template_data) {
+      return {
+        success: false,
+        data: { message: "Configuração não encontrada" },
+      };
+    }
+
+    const updatedCategories = userConfig.template_data.categories.filter(
+      (cat: UserConfigCategory) => cat.id !== category.id
+    );
+
+    const updateResult = await updateUserConfig({
+      template_data: {
+        ...userConfig.template_data,
+        categories: updatedCategories,
+      },
+    });
+
+    if (updateResult.success) {
+      return {
+        success: true,
+        data: {
+          ...updateResult.data,
+          message: "Catálogo removido com sucesso",
+          deletedImages: deleteResults.length,
+          folderDeleted: folderDeleteResult.success,
+        },
+      };
+    } else {
+      return {
+        success: false,
+        data: { message: updateResult.error || "Erro ao remover catálogo" },
+      };
+    }
+  } catch (error) {
+    console.error("Erro ao deletar categoria:", error);
+    return {
+      success: false,
+      data: { message: "Erro de conexão" },
+    };
+  }
+}
+
+// Em lib/user.ts
+export async function getUserBySlug(slug: string) {
+  try {
+    const apiUrl = process.env.EXTERNAL_API_URL || "http://localhost:3001";
+
+    console.log("API URL:", apiUrl);
+    console.log("Fetching user with slug:", slug);
+
+    const response = await fetch(
+      `${apiUrl}/users/by-slug`, // URL fixa agora
+      {
+        method: "POST", // Mudou para POST
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ slug }), // Slug no body
+        cache: "no-store",
+      }
+    );
+
+    console.log("Response status:", response.status);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch user: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("User data received:", data);
+
+    return data;
+  } catch (error) {
+    console.error("Error fetching user by slug:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch user",
+    };
   }
 }

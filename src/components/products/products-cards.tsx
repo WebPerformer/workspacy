@@ -1,4 +1,4 @@
-import { Eye } from "lucide-react";
+import { CircleCheck, Eye } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/src/components/ui/badge";
@@ -41,12 +41,16 @@ const TemplateCard = ({
   isConfigured,
   loadingButtons,
   onActivateOrConfigure,
+  isActiveTemplate,
+  templateUrl,
 }: {
   template: Template;
   subscriptionTemplates: Template[];
   isConfigured: boolean;
   loadingButtons: { [key: string]: boolean };
   onActivateOrConfigure: (templateId: string) => void;
+  isActiveTemplate: boolean;
+  templateUrl: string | null;
 }) => (
   <div className="space-y-4 bg-card rounded-lg p-3 @[575px]:p-4 border h-full">
     <TemplateImage template={template} />
@@ -57,6 +61,8 @@ const TemplateCard = ({
       isConfigured={isConfigured}
       loading={loadingButtons[template.id]}
       onActivateOrConfigure={onActivateOrConfigure}
+      isActiveTemplate={isActiveTemplate}
+      templateUrl={templateUrl}
     />
   </div>
 );
@@ -106,26 +112,70 @@ const TemplateInfo = ({ template }: { template: Template }) => (
   </div>
 );
 
-// Subcomponente de Ação (Botão)
 const TemplateAction = ({
   template,
   subscriptionTemplates,
   isConfigured,
   loading,
   onActivateOrConfigure,
+  isActiveTemplate,
+  templateUrl,
 }: {
   template: Template;
   subscriptionTemplates: Template[];
   isConfigured: boolean;
   loading: boolean;
   onActivateOrConfigure: (templateId: string) => void;
+  isActiveTemplate: boolean;
+  templateUrl: string | null;
 }) => {
+  // Gerar slug do template para a URL baseado no nome do template
+  const templateSlug = template.name
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w-]/g, "");
+
   if (!template.has_access) {
     return (
       <PurchaseDrawer
         template={template}
         subscriptionTemplates={subscriptionTemplates}
       />
+    );
+  }
+
+  if (isActiveTemplate && templateUrl) {
+    // Gerar slug do template para a URL
+    const templateSlug = template.name
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^\w-]/g, "");
+
+    return (
+      <Link
+        href={`/${templateSlug}/${templateUrl}`}
+        className="w-full"
+        target="_blank"
+      >
+        <Button className="w-full" variant="outline">
+          <Eye size={16} className="mr-2" />
+          Visitar Template
+        </Button>
+      </Link>
+    );
+  }
+
+  if (isActiveTemplate && !templateUrl) {
+    return (
+      <Button
+        className="w-full"
+        variant="outline"
+        disabled
+        onClick={() => (window.location.href = "/template-setup")}
+      >
+        <Eye size={16} className="mr-2" />
+        Configurar URL Primeiro
+      </Button>
     );
   }
 
@@ -144,44 +194,60 @@ const TemplateAction = ({
   );
 };
 
+const useUserConfig = () => {
+  const [config, setConfig] = useState<{
+    isConfigured: boolean;
+    loading: boolean;
+    activeTemplateId: string | null;
+    templateUrl: string | null;
+  }>({
+    isConfigured: false,
+    loading: true,
+    activeTemplateId: null,
+    templateUrl: null,
+  });
+
+  const refetch = async () => {
+    try {
+      const userConfig = await getUserConfig();
+
+      setConfig({
+        isConfigured: userConfig?.is_template_configured || false,
+        loading: false,
+        activeTemplateId: userConfig?.selected_template_id || null,
+        templateUrl: userConfig?.template_url || null,
+      });
+    } catch (error) {
+      console.error("Error checking template config:", error);
+      setConfig({
+        isConfigured: false,
+        loading: false,
+        activeTemplateId: null,
+        templateUrl: null,
+      });
+    }
+  };
+
+  useEffect(() => {
+    refetch();
+  }, []);
+
+  return { ...config, refetch };
+};
+
 export default function ProductsCards() {
+  const {
+    isConfigured: userConfigured,
+    loading: configLoading,
+    activeTemplateId,
+    templateUrl,
+    refetch: refetchUserConfig,
+  } = useUserConfig();
+
   const [loadingButtons, setLoadingButtons] = useState<{
     [key: string]: boolean;
   }>({});
-  // Custom Hook para dados do usuário
-  const useUserConfig = () => {
-    const [config, setConfig] = useState<{
-      isConfigured: boolean;
-      loading: boolean;
-    }>({
-      isConfigured: false,
-      loading: true,
-    });
 
-    useEffect(() => {
-      const checkTemplateConfig = async () => {
-        try {
-          const userConfig = await getUserConfig();
-          setConfig({
-            isConfigured: userConfig?.is_template_configured || false,
-            loading: false,
-          });
-        } catch (error) {
-          console.error("Error checking template config:", error);
-          setConfig({ isConfigured: false, loading: false });
-        }
-      };
-
-      checkTemplateConfig();
-    }, []);
-
-    return config;
-  };
-
-  const { isConfigured: userConfigured, loading: configLoading } =
-    useUserConfig();
-
-  // Função única para ativar/redirecionar
   const handleActivateOrConfigure = async (templateId: string) => {
     if (!userConfigured) {
       window.location.href = "/template-setup";
@@ -195,6 +261,8 @@ export default function ProductsCards() {
 
       if (result?.success) {
         toast.success("Template ativado com sucesso!");
+        // Atualizar o estado local buscando a configuração atualizada
+        await refetchUserConfig();
       } else {
         toast.error("Erro ao ativar template");
       }
@@ -205,7 +273,6 @@ export default function ProductsCards() {
     }
   };
 
-  // Função única para carregar templates
   const useTemplates = () => {
     const [state, setState] = useState<{
       templates: Template[];
@@ -292,6 +359,8 @@ export default function ProductsCards() {
               isConfigured={userConfigured}
               loadingButtons={loadingButtons}
               onActivateOrConfigure={handleActivateOrConfigure}
+              isActiveTemplate={activeTemplateId === template.id}
+              templateUrl={templateUrl}
             />
           </SwiperSlide>
         ))

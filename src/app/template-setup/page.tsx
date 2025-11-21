@@ -1,12 +1,12 @@
 "use client";
 
 import { Input } from "@/src/components/ui/input";
-import { Check, Edit, Plus } from "lucide-react";
+import { Check, Edit, MessageSquareWarning, Plus, Trash2 } from "lucide-react";
 import { useState, useEffect, useContext } from "react";
 import { Textarea } from "@/src/components/ui/textarea";
 import { useRouter } from "next/navigation";
 import { Button } from "@/src/components/ui/button";
-import { Label } from "@/src/components/ui/label";
+import loadingSvg from "@/public/images/loading.svg";
 
 // Importe o AuthContext
 import { AuthContext } from "@/src/contexts/AuthContext";
@@ -27,10 +27,16 @@ import {
 
 // Componente do Dialog
 import { CategoryDialog } from "@/src/components/templates/templates-category-dialog";
-import { getUserConfig, updateUserConfig } from "@/src/lib/user";
+import {
+  deleteCategoryConfig,
+  getUserConfig,
+  updateUserConfig,
+} from "@/src/lib/user";
+import Image from "next/image";
+import { UserConfigCategory } from "@/src/types/user";
 
 // Schema de validação
-const portfolioFormSchema = z.object({
+const templateFormSchema = z.object({
   url: z
     .string()
     .min(3, { message: "A URL deve ter pelo menos 3 caracteres" })
@@ -62,34 +68,16 @@ const portfolioFormSchema = z.object({
     }),
 });
 
-type PortfolioForm = z.infer<typeof portfolioFormSchema>;
-
-interface PortfolioImage {
-  url: string;
-  filename: string;
-  key: string;
-  uploaded_at: Date;
-  size: number;
-  metadata?: {
-    categoryId?: string;
-    userId?: string;
-    description?: string;
-  };
-}
-
-interface Category {
-  id: string;
-  name: string;
-  images: PortfolioImage[];
-}
+type TemplateForm = z.infer<typeof templateFormSchema>;
 
 export default function TemplateSetup() {
   const { user } = useContext(AuthContext);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<UserConfigCategory[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingCategory, setEditingCategory] =
+    useState<UserConfigCategory | null>(null);
   const router = useRouter();
 
   const userId = user?.id?.toString() || "";
@@ -134,8 +122,8 @@ export default function TemplateSetup() {
   const maxTotalImages = 25;
 
   // Inicializar o formulário com react-hook-form e zod
-  const form = useForm<PortfolioForm>({
-    resolver: zodResolver(portfolioFormSchema),
+  const form = useForm<TemplateForm>({
+    resolver: zodResolver(templateFormSchema),
     defaultValues: {
       url: "",
       description: "",
@@ -152,13 +140,13 @@ export default function TemplateSetup() {
   };
 
   // Abrir modal de edição
-  const openEditCategory = (category: Category) => {
+  const openEditCategory = (category: UserConfigCategory) => {
     setEditingCategory(category);
     setDialogOpen(true);
   };
 
   // Atualizar lista de categorias quando salvar no Dialog
-  const handleSaveCategory = (savedCategory: Category) => {
+  const handleSaveCategory = (savedCategory: UserConfigCategory) => {
     if (editingCategory) {
       // Atualizar categoria existente
       setCategories((prev) =>
@@ -170,13 +158,32 @@ export default function TemplateSetup() {
     }
   };
 
-  // Remover categoria da lista local quando deletar no Dialog
-  const handleDeleteCategory = (categoryId: string) => {
-    setCategories((prev) => prev.filter((cat) => cat.id !== categoryId));
+  const handleDeleteCategory = async (categoryId: string) => {
+    const category = categories.find((cat) => cat.id === categoryId);
+    if (!category) return;
+
+    if (
+      !confirm(`Tem certeza que deseja remover o catálogo "${category.name}"?`)
+    ) {
+      return;
+    }
+
+    setLoading(true);
+
+    // Passe o userId como segundo parâmetro
+    const { success, data } = await deleteCategoryConfig(category, userId);
+
+    if (success) {
+      setCategories((prev) => prev.filter((cat) => cat.id !== categoryId));
+      toast.success(`Catálogo "${category.name}" removido!`);
+    } else {
+      toast.error(data.message || "Erro ao remover catálogo");
+    }
+    setLoading(false);
   };
 
   // Salvar apenas as informações do template (URL, descrição, redes sociais)
-  async function onSubmit(data: PortfolioForm) {
+  async function onSubmit(data: TemplateForm) {
     setLoading(true);
 
     try {
@@ -185,7 +192,7 @@ export default function TemplateSetup() {
       const currentTemplateData = userConfig?.template_data || {};
 
       // Garantir que mantemos as categorias existentes com estrutura completa
-      const portfolioConfig = {
+      const templateConfig = {
         url: data.url,
         description: data.description,
         instagram: data.instagram || "",
@@ -195,7 +202,7 @@ export default function TemplateSetup() {
       };
 
       const result = await updateUserConfig({
-        template_data: portfolioConfig,
+        template_data: templateConfig,
         is_template_configured: true,
       });
 
@@ -287,6 +294,20 @@ export default function TemplateSetup() {
                   </span>
                 </div>
 
+                {/* Alertas visuais */}
+                {totalImages > maxTotalImages && (
+                  <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                    <p className="text-destructive text-sm font-medium">
+                      <MessageSquareWarning size={20} /> Limite de imagens
+                      excedido
+                    </p>
+                    <p className="text-destructive/80 text-xs mt-1">
+                      Você tem {totalImages - maxTotalImages} imagem(ns) além do
+                      limite. Edite seus catálogos para remover o excesso.
+                    </p>
+                  </div>
+                )}
+
                 {categories.map((category) => (
                   <div
                     key={category.id}
@@ -295,18 +316,38 @@ export default function TemplateSetup() {
                     <div>
                       <h6 className="font-medium text-sm">{category.name}</h6>
                       <p className="text-xs text-muted-foreground">
-                        {category.images.length} imagem
-                        {category.images.length !== 1 ? "ens" : ""}
+                        {category.images.length} image
+                        {category.images.length !== 1 ? "ns" : "m"}
                       </p>
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openEditCategory(category)}
-                    >
-                      <Edit size={14} />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditCategory(category)}
+                      >
+                        <Edit size={14} />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteCategory(category.id)}
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <Image
+                            src={loadingSvg}
+                            alt="loading"
+                            width={20}
+                            height={20}
+                          />
+                        ) : (
+                          <Trash2 size={14} />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -329,8 +370,7 @@ export default function TemplateSetup() {
               mode={editingCategory ? "edit" : "create"}
               category={editingCategory || undefined}
               onSave={handleSaveCategory}
-              onDelete={handleDeleteCategory}
-              totalImages={totalImages}
+              categories={categories}
               maxTotalImages={maxTotalImages}
               userId={userId}
             />

@@ -9,7 +9,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 // Third-party icons
-import { ChevronRight, ScanSearch, Search } from "lucide-react";
+import { Search } from "lucide-react";
 
 // UI components and forms
 import { Button } from "@/src/components/ui/button";
@@ -22,18 +22,9 @@ import {
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarTrigger,
   useSidebar,
 } from "@/src/components/ui/sidebar";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/src/components/ui/collapsible";
 import LoggedUser from "@/src/components/sidebar/logged-user";
 
 // Static assets

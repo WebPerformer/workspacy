@@ -1,19 +1,8 @@
 "use client";
 import { createContext, useEffect, useState } from "react";
 import { getUserProfile } from "@/src/lib/user";
-
-type User = {
-  id: number;
-  username: string;
-  email: string;
-  profileImage: string;
-  role: "admin" | "user";
-};
-
-type AuthContextType = {
-  user: User | null;
-  setUser: (user: User | null) => void;
-};
+import { User } from "../types/user";
+import { AuthContextType } from "../types/auth";
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
