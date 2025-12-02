@@ -23,7 +23,6 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation } from "swiper/modules";
 import "swiper/css";
 import {
-  deleteCloudinaryImage,
   deleteCloudinaryImages,
   uploadToCloudinary,
 } from "@/src/lib/cloudinary";
@@ -50,6 +49,14 @@ export function CategoryDialog({
   );
   const [uploading, setUploading] = useState(false);
   const [removedImages, setRemovedImages] = useState<UserConfigImage[]>([]);
+
+  const generateUniqueCategoryId = () => {
+    const timestamp = Date.now();
+    const random = Array.from(crypto.getRandomValues(new Uint32Array(2)))
+      .map((n) => n.toString(36))
+      .join("");
+    return `category-${timestamp}-${random}`;
+  };
 
   // Calcular total de imagens em tempo real considerando TODAS as categorias
   const calculateTotalImages = () => {
@@ -167,7 +174,7 @@ export function CategoryDialog({
     setUploading(true);
 
     try {
-      const finalCategoryId = category?.id || `category-${Date.now()}`;
+      const finalCategoryId = category?.id || generateUniqueCategoryId();
 
       // Tentar deletar imagens marcadas do Cloudinary
       const deleteResult = await deleteMarkedImages();
@@ -203,10 +210,13 @@ export function CategoryDialog({
       let updatedCategories: UserConfigCategory[];
 
       if (mode === "edit" && category) {
+        // Ao editar: substitui a categoria específica
         updatedCategories = currentCategories.map((cat: UserConfigCategory) =>
           cat.id === category.id ? categoryData : cat
         );
       } else {
+        // Ao criar: ADICIONA nova categoria à lista existente
+        // NÃO substitui todas!
         updatedCategories = [...currentCategories, categoryData];
       }
 
@@ -214,7 +224,7 @@ export function CategoryDialog({
       const updateResult = await updateUserConfig({
         template_data: {
           ...currentConfig.template_data,
-          categories: updatedCategories,
+          categories: updatedCategories, // Envia TODAS as categorias
         },
       });
 

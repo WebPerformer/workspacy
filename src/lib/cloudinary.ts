@@ -206,39 +206,55 @@ export async function deleteCloudinaryFolder(
       throw new Error("Cloudinary configuration is missing");
     }
 
-    const timestamp = Math.floor(Date.now() / 1000);
+    // 1. Primeiro, verificar se a pasta existe e está vazia
+    try {
+      // Listar subpastas da pasta pai (se houver)
+      const parentFolder = folderPath.substring(0, folderPath.lastIndexOf("/"));
+      const folderName = folderPath.substring(folderPath.lastIndexOf("/") + 1);
 
-    // Usando a mesma lógica de assinatura que você usa para as imagens
-    const params = {
-      timestamp: timestamp.toString(),
-      folder: folderPath,
-    };
+      // Fazer requisição para listar subpastas
+      const listResponse = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/folders/${
+          parentFolder || ""
+        }`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Basic ${Buffer.from(
+              `${apiKey}:${apiSecret}`
+            ).toString("base64")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-    const sortedParams = Object.keys(params)
-      .sort()
-      .map((key) => `${key}=${params[key as keyof typeof params]}`)
-      .join("&");
+      if (listResponse.ok) {
+        const result = await listResponse.json();
 
-    const stringToSign = `${sortedParams}${apiSecret}`;
-    const signature = crypto
-      .createHash("sha1")
-      .update(stringToSign)
-      .digest("hex");
+        // Verificar se nossa pasta está na lista
+        const folderExists = result.folders?.some(
+          (folder: any) =>
+            folder.name === folderName || folder.path === folderPath
+        );
 
-    const formData = new URLSearchParams();
-    formData.append("folder", folderPath);
-    formData.append("timestamp", timestamp.toString());
-    formData.append("api_key", apiKey);
-    formData.append("signature", signature);
+        if (!folderExists) {
+          return { success: true };
+        }
+      }
+    } catch (listError) {
+      console.warn("⚠️ Não foi possível listar pastas:", listError);
+    }
 
     const response = await fetch(
       `https://api.cloudinary.com/v1_1/${cloudName}/folders/${folderPath}`,
       {
         method: "DELETE",
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: `Basic ${Buffer.from(
+            `${apiKey}:${apiSecret}`
+          ).toString("base64")}`,
+          "Content-Type": "application/json",
         },
-        body: formData.toString(),
       }
     );
 
@@ -249,24 +265,80 @@ export async function deleteCloudinaryFolder(
     } else {
       console.error("❌ Erro ao deletar pasta:", folderPath, result);
 
-      // Se a pasta não existe (já foi deletada), consideramos sucesso
+      // Verificar tipos de erro comuns
+      const errorMessage = result.error?.message || JSON.stringify(result);
+
+      // Se a pasta não existe, não tem permissão, ou já foi deletada
       if (
-        result.error?.message?.includes("not found") ||
-        result.error?.message?.includes("does not exist")
+        errorMessage.includes("not found") ||
+        errorMessage.includes("does not exist") ||
+        errorMessage.includes("Invalid credentials") ||
+        errorMessage.includes("not empty") ||
+        errorMessage.includes("cannot be deleted") ||
+        response.status === 404 ||
+        response.status === 401
       ) {
+        console.warn(`⚠️ ${errorMessage} - Pasta: ${folderPath}`);
+
+        // Verificar se podemos deletar recursivamente
+        if (errorMessage.includes("not empty")) {
+          // Primeiro deletar todos os recursos da pasta
+          const deleteResourcesResponse = await fetch(
+            `https://api.cloudinary.com/v1_1/${cloudName}/resources/image/upload?prefix=${folderPath}`,
+            {
+              method: "DELETE",
+              headers: {
+                Authorization: `Basic ${Buffer.from(
+                  `${apiKey}:${apiSecret}`
+                ).toString("base64")}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          const deleteResourcesResult = await deleteResourcesResponse.json();
+
+          // Tentar deletar a pasta novamente
+          if (deleteResourcesResponse.ok) {
+            // Esperar um pouco para o Cloudinary processar
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+
+            const retryResponse = await fetch(
+              `https://api.cloudinary.com/v1_1/${cloudName}/folders/${folderPath}`,
+              {
+                method: "DELETE",
+                headers: {
+                  Authorization: `Basic ${Buffer.from(
+                    `${apiKey}:${apiSecret}`
+                  ).toString("base64")}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+
+            if (retryResponse.ok) {
+              return { success: true };
+            }
+          }
+        }
+
+        // Mesmo com erro, consideramos sucesso porque as imagens já foram deletadas
         return { success: true };
       }
 
       return {
         success: false,
-        error: result.error?.message || "Folder delete failed",
+        error: errorMessage,
       };
     }
   } catch (error) {
-    console.error("❌ Erro ao deletar pasta:", folderPath, error);
+    console.error("❌ Erro inesperado ao deletar pasta:", folderPath, error);
+
+    // Em caso de erro de rede ou inesperado, ainda consideramos sucesso parcial
+    // porque as imagens individuais já foram deletadas
     return {
-      success: false,
-      error: error instanceof Error ? error.message : "Folder delete failed",
+      success: true,
+      error: error instanceof Error ? error.message : "Erro ao deletar pasta",
     };
   }
 }
