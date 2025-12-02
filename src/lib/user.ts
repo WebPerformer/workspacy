@@ -325,9 +325,6 @@ export async function getUserBySlug(slug: string) {
   try {
     const apiUrl = process.env.EXTERNAL_API_URL || "http://localhost:3001";
 
-    console.log("API URL:", apiUrl);
-    console.log("Fetching user with slug:", slug);
-
     const response = await fetch(
       `${apiUrl}/users/by-slug`, // URL fixa agora
       {
@@ -340,14 +337,11 @@ export async function getUserBySlug(slug: string) {
       }
     );
 
-    console.log("Response status:", response.status);
-
     if (!response.ok) {
       throw new Error(`Failed to fetch user: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log("User data received:", data);
 
     return data;
   } catch (error) {

@@ -171,7 +171,7 @@ const TemplateAction = ({
         className="w-full"
         variant="outline"
         disabled
-        onClick={() => (window.location.href = "/template-setup")}
+        onClick={() => (window.location.href = "/dashboard/template-setup")}
       >
         <Eye size={16} className="mr-2" />
         Configurar URL Primeiro
@@ -250,7 +250,7 @@ export default function ProductsCards() {
 
   const handleActivateOrConfigure = async (templateId: string) => {
     if (!userConfigured) {
-      window.location.href = "/template-setup";
+      window.location.href = "/dashboard/template-setup";
       return;
     }
 

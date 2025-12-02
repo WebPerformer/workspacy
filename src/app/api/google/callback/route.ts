@@ -3,14 +3,12 @@ import { cookies } from "next/headers";
 
 export async function GET(req: Request) {
   try {
-    console.log("🔗 Google callback endpoint HIT!");
-
     const { searchParams } = new URL(req.url);
     const token = searchParams.get("token");
 
     if (!token) {
       return NextResponse.redirect(
-        new URL("/signin?error=auth_failed", req.url)
+        new URL("/dashboard/signin?error=auth_failed", req.url)
       );
     }
 
@@ -23,9 +21,11 @@ export async function GET(req: Request) {
       path: "/",
     });
 
-    return NextResponse.redirect(new URL("/", req.url));
+    return NextResponse.redirect(new URL("/dashboard", req.url));
   } catch (error) {
     console.error("Error in Google callback:", error);
-    return NextResponse.redirect(new URL("/signin?error=auth_failed", req.url));
+    return NextResponse.redirect(
+      new URL("/dashboard/signin?error=auth_failed", req.url)
+    );
   }
 }

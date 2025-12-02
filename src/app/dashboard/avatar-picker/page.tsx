@@ -88,7 +88,7 @@ function Avatar() {
           profileImage: avatar,
         });
       }
-      router.push("/");
+      router.push("/dashboard");
     } else {
       toast.error(data.message);
     }
@@ -124,7 +124,7 @@ function Avatar() {
         ))}
       </div>
       <div className="flex items-center justify-end gap-2">
-        <Link href="/">
+        <Link href="/dashboard">
           <Button variant="secondary">Cancelar</Button>
         </Link>
         <Button

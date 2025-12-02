@@ -91,7 +91,7 @@ export function PurchaseDrawer({
               ?.price.unit_amount;
 
       router.push(
-        `/checkout?price_id=${priceIdToUse}&product_id=${productIdToUse}&mode=${
+        `/dashboard/checkout?price_id=${priceIdToUse}&product_id=${productIdToUse}&mode=${
           selectedOption === "one_time" ? "payment" : "subscription"
         }&amount=${amount}`
       );

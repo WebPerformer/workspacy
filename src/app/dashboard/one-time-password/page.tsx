@@ -82,7 +82,9 @@ export default function OtpCode() {
 
     if (success) {
       toast.success(data.message);
-      router.push("/reset-password?email=" + email + "&otp=" + values.otp);
+      router.push(
+        "/dashboard/reset-password?email=" + email + "&otp=" + values.otp
+      );
     } else {
       toast.error(data.message);
     }

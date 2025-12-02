@@ -43,13 +43,6 @@ export async function uploadToCloudinary(
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
     const apiKey = process.env.CLOUDINARY_API_KEY;
 
-    // Adicione temporariamente no início da função uploadToCloudinary
-    console.log("Cloudinary config:", {
-      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
-      apiKey: process.env.CLOUDINARY_API_KEY ? "***" : "missing",
-      hasSecret: !!process.env.CLOUDINARY_API_SECRET,
-    });
-
     if (!cloudName || !apiKey || !process.env.CLOUDINARY_API_SECRET) {
       throw new Error("Cloudinary configuration is missing");
     }
@@ -157,7 +150,6 @@ export async function deleteCloudinaryImage(
     const result = await response.json();
 
     if (response.ok && result.result === "ok") {
-      console.log("✅ Imagem deletada:", publicId);
       return { success: true, publicId };
     } else {
       console.error("❌ Erro ao deletar imagem:", publicId, result);
@@ -210,13 +202,6 @@ export async function deleteCloudinaryFolder(
     const apiKey = process.env.CLOUDINARY_API_KEY;
     const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
-    console.log("🔄 Deletando pasta do Cloudinary:", {
-      folderPath,
-      cloudName,
-      apiKey: apiKey ? "***" : "missing",
-      hasSecret: !!apiSecret,
-    });
-
     if (!cloudName || !apiKey || !apiSecret) {
       throw new Error("Cloudinary configuration is missing");
     }
@@ -260,7 +245,6 @@ export async function deleteCloudinaryFolder(
     const result = await response.json();
 
     if (response.ok) {
-      console.log("✅ Pasta deletada com sucesso:", folderPath);
       return { success: true };
     } else {
       console.error("❌ Erro ao deletar pasta:", folderPath, result);
@@ -270,9 +254,6 @@ export async function deleteCloudinaryFolder(
         result.error?.message?.includes("not found") ||
         result.error?.message?.includes("does not exist")
       ) {
-        console.log(
-          "ℹ️ Pasta já não existe, considerando operação bem-sucedida"
-        );
         return { success: true };
       }
 

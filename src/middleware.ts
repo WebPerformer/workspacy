@@ -14,11 +14,11 @@ export function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
   const publicPaths = [
-    "/signin",
-    "/signup",
-    "/forgot-password",
-    "/reset-password",
-    "/one-time-password",
+    "/dashboard/signin",
+    "/dashboard/signup",
+    "/dashboard/forgot-password",
+    "/dashboard/reset-password",
+    "/dashboard/one-time-password",
   ];
 
   const isPublicTemplateRoute = /^\/[^\/]+\/[^\/]+$/.test(path);
@@ -31,17 +31,19 @@ export function middleware(req: NextRequest) {
     !publicPaths.some((p) => path.startsWith(p)) &&
     !isPublicTemplateRoute
   ) {
-    return NextResponse.redirect(new URL("/signin", req.nextUrl.origin));
+    return NextResponse.redirect(
+      new URL("/dashboard/signin", req.nextUrl.origin)
+    );
   }
 
   if (token && publicPaths.includes(path)) {
-    return NextResponse.redirect(new URL("/", req.nextUrl.origin));
+    return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
   }
 
-  if (token && path.startsWith("/customers")) {
+  if (token && path.startsWith("/dashboard/customers")) {
     const payload = decodeJwt(token) as { role?: string } | null;
     if (!payload || payload.role !== "admin") {
-      return NextResponse.redirect(new URL("/", req.nextUrl.origin));
+      return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
     }
   }
 

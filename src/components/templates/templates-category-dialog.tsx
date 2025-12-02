@@ -268,10 +268,6 @@ export function CategoryDialog({
       return { success: true, deletedCount: 0 };
     }
 
-    console.log(
-      `🗑️ Tentando deletar ${imagesToDelete.length} imagens do Cloudinary...`
-    );
-
     // Usando a mesma função que você já tem para deletar múltiplas imagens
     const deleteResult = await deleteCloudinaryImages(
       imagesToDelete.map((img) => img.key!)
@@ -288,9 +284,6 @@ export function CategoryDialog({
       };
     }
 
-    console.log(
-      `✅ Todas as ${deleteResult.deleted.length} imagens deletadas com sucesso`
-    );
     return {
       success: true,
       deletedCount: deleteResult.deleted.length,

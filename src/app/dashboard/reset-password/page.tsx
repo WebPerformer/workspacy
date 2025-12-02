@@ -60,7 +60,7 @@ export default function ResetPassword() {
 
     if (success) {
       toast.success(data.message);
-      router.push("/signin");
+      router.push("/dashboard/signin");
     } else {
       toast.error(data.message);
     }

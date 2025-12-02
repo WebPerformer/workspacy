@@ -48,7 +48,7 @@ export default function ForgotPassword() {
 
     if (success) {
       toast.success(data.message);
-      router.push("/one-time-password?email=" + values.email);
+      router.push("/dashboard/one-time-password?email=" + values.email);
     } else {
       toast.error(data.message);
     }
@@ -94,7 +94,7 @@ export default function ForgotPassword() {
         </form>
       </Form>
       <Link
-        href="/signin"
+        href="/dashboard/signin"
         className="flex items-center justify-center gap-2 text-sm hover:text-foreground hover:underline"
       >
         <MoveLeft />

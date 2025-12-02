@@ -150,13 +150,13 @@ function LoggedUser() {
   const handleLogout = async () => {
     await signOutRequest();
     setUser(null);
-    router.push("/");
+    router.push("/dashboard");
   };
 
   const handleDeleteProfile = async () => {
     await DeleteProfile();
     setUser(null);
-    router.push("/");
+    router.push("/dashboard");
   };
 
   return (
@@ -228,7 +228,7 @@ function LoggedUser() {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <Link
-                href="/avatar-picker"
+                href="/dashboard/avatar-picker"
                 onClick={() => isMobile && toggleSidebar()}
               >
                 <DropdownMenuItem>

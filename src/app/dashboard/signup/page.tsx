@@ -68,7 +68,7 @@ function SignUp() {
     if (success) {
       toast.success("User created successfully");
       setUser(data);
-      router.push("/avatar-picker");
+      router.push("/dashboard/avatar-picker");
     } else {
       toast.error(data.message);
     }
@@ -176,7 +176,7 @@ function SignUp() {
       </Form>
       <div className="flex items-center justify-center gap-2">
         <p className="text-sm text-muted-foreground">Já tem uma conta?</p>
-        <Link href="/signin" className="text-sm hover:underline">
+        <Link href="/dashboard/signin" className="text-sm hover:underline">
           Entrar
         </Link>
       </div>

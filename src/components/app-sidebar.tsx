@@ -51,7 +51,7 @@ export function AppSidebar() {
       <SidebarHeader>
         <SidebarMenu>
           <div className="flex items-center justify-between">
-            <Link href="/" onClick={() => isMobile && toggleSidebar()}>
+            <Link href="/dashboard" onClick={() => isMobile && toggleSidebar()}>
               <Image src={logo} alt="logo" width={112} height={20} />
             </Link>
             <div>
@@ -69,7 +69,7 @@ export function AppSidebar() {
             <LoggedUser />
           ) : (
             <Link
-              href="/signin"
+              href="/dashboard/signin"
               onClick={() => isMobile && toggleSidebar()}
               className="w-full"
             >

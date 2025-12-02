@@ -1,8 +1,8 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Sparkle } from "lucide-react";
-import ProductsCards from "../components/products/products-cards";
-import { Button } from "../components/ui/button";
+import ProductsCards from "@/src/components/products/products-cards";
+import { Button } from "@/src/components/ui/button";
 
 export default function AppIntroduction() {
   return (

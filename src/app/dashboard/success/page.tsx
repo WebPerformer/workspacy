@@ -98,13 +98,13 @@ export default function SuccessPage() {
       {/* Botões de ação DINÂMICOS */}
       <div className="flex items-center gap-2">
         {!isConfigured && (
-          <Link href="/template-setup">
+          <Link href="/dashboard/template-setup">
             <Button variant="outline" className="w-full">
               Configurar Template
             </Button>
           </Link>
         )}
-        <Link href="/">
+        <Link href="/dashboard">
           <Button className="w-full">Continuar</Button>
         </Link>
       </div>

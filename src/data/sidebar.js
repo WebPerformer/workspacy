@@ -4,23 +4,23 @@ export const sidebar = {
   navMain: [
     {
       label: "Dashboard",
-      href: "/",
+      href: "/dashboard",
       icon: LayoutDashboard,
     },
     {
       label: "Meus Clientes",
-      href: "/customers",
+      href: "/dashboard/customers",
       icon: Users,
       roles: ["admin"],
     },
     {
       label: "Websites Templates",
-      href: "/products-web",
+      href: "/dashboard/products-web",
       icon: MonitorDot,
     },
     {
       label: "Configurações",
-      href: "/template-setup",
+      href: "/dashboard/template-setup",
       icon: Settings,
     },
   ],

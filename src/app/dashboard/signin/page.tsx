@@ -60,7 +60,7 @@ export default function SignIn() {
 
     if (success) {
       setUser(data);
-      router.push("/");
+      router.push("/dashboard");
     } else {
       toast.error(data.message);
     }
@@ -158,7 +158,10 @@ export default function SignIn() {
                   Lembrar de mim
                 </Label>
               </div>
-              <Link href="/forgot-password" className="text-sm hover:underline">
+              <Link
+                href="/dashboard/forgot-password"
+                className="text-sm hover:underline"
+              >
                 Esqueceu a senha?
               </Link>
             </div>
@@ -176,7 +179,7 @@ export default function SignIn() {
       </Form>
       <div className="flex items-center justify-center gap-2">
         <p className="text-sm text-muted-foreground">Não tem uma conta?</p>
-        <Link href="/signup" className="text-sm hover:underline">
+        <Link href="/dashboard/signup" className="text-sm hover:underline">
           Registrar
         </Link>
       </div>
