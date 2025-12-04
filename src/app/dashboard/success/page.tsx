@@ -5,7 +5,7 @@ import { Button } from "@/src/components/ui/button";
 import { Check } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getUserConfig } from "@/src/lib/user"; // Supondo que você tenha essa função
+import { getUserConfig } from "@/src/lib/user";
 import { Skeleton } from "@/src/components/ui/skeleton";
 
 export default function SuccessPage() {

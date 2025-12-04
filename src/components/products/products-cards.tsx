@@ -76,29 +76,16 @@ const TemplateImage = ({
   priority?: boolean;
 }) => (
   <div>
-    <Link
-      href={template.metadata.preview}
-      target="_blank"
-      className="relative group cursor-pointer"
-    >
-      {template.images[0] && (
-        <Image
-          src={template.images[0]}
-          alt={template.name}
-          width={400}
-          height={300}
-          className="object-cover rounded-lg aspect-[12/9] w-full"
-          priority={priority}
-        />
-      )}
-      <Badge
-        variant="secondary"
-        className="md:opacity-0 group-hover:opacity-100 transition-opacity absolute top-2 right-2"
-      >
-        <Eye />
-        <span className="text-xs">Pré-Visualizar</span>
-      </Badge>
-    </Link>
+    {template.images[0] && (
+      <Image
+        src={template.images[0]}
+        alt={template.name}
+        width={400}
+        height={300}
+        className="object-cover rounded-lg aspect-[12/9] w-full"
+        priority={priority}
+      />
+    )}
   </div>
 );
 
@@ -159,7 +146,7 @@ const TemplateAction = ({
       >
         <Button className="w-full" variant="outline">
           <Eye size={16} className="mr-2" />
-          Visitar Template
+          Visitar Website
         </Button>
       </Link>
     );
@@ -188,7 +175,7 @@ const TemplateAction = ({
       {loading ? (
         <Image src={loadingSvg} alt="loading" width={20} height={20} />
       ) : (
-        "Ativar Template"
+        "Ativar Website"
       )}
     </Button>
   );

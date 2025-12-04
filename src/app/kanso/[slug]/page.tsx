@@ -1,4 +1,4 @@
-import { getUserBySlug } from "@/src/lib/user";
+import { getUserBySlug, getUserConfig } from "@/src/lib/user";
 import { notFound } from "next/navigation";
 
 import { ImageFilterClient } from "./components/ImageFilterClient";
@@ -39,7 +39,13 @@ export default async function PublicTemplatePage({ params }: PageProps) {
       );
     }
 
-    if (!userData?.success || !userData.data) {
+    const userConfig = await getUserConfig();
+
+    if (
+      !userData?.success ||
+      !userData.data ||
+      userConfig?.selected_template_id !== "prod_TNO1FXLzk6I0sL"
+    ) {
       notFound();
     }
 

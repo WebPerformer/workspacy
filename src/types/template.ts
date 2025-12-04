@@ -1,10 +1,8 @@
-import { UserConfigImage } from "./user";
-
 export interface Template {
   id: string;
   name: string;
   description: string;
-  images: UserConfigImage[];
+  images: string[];
   metadata: {
     advantages?: Record<string, string>;
     category?: string;

@@ -76,7 +76,7 @@ export function ImageFilterClient({ user }: ImageFilterClientProps) {
     <>
       <div className="lg:hidden flex items-center justify-between p-4 border-b sticky top-0 bg-background z-40">
         <div className="flex items-center gap-3">
-          <Image src={logo} alt="" className="w-12 h-12" />
+          <Image src={logo} alt="" className="w-12" />
           <div>
             <h5 className="font-bold text-sm">{user.username}</h5>
             <p className="text-muted-foreground text-xs">Capturando momentos</p>
@@ -197,7 +197,7 @@ export function ImageFilterClient({ user }: ImageFilterClientProps) {
           <div className="flex flex-col gap-11">
             <div className="flex flex-col gap-6 pb-12">
               <div>
-                <Image src={logo} alt="" className="w-20" />
+                <Image src={logo} alt="" className="w-16" />
               </div>
               <div>
                 <h5 className="font-bold">{user.username}</h5>

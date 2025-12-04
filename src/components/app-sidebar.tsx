@@ -36,13 +36,16 @@ import { sidebar } from "@/src/data/sidebar";
 // App context and logic
 import { AuthContext } from "@/src/contexts/AuthContext";
 
+// Types
+import { NavMainItem } from "@/src/types/sidebar";
+
 export function AppSidebar() {
   const pathname = usePathname();
   const { isMobile, toggleSidebar } = useSidebar();
 
   const { user } = useContext(AuthContext);
 
-  const filteredNav = sidebar.navMain.filter(
+  const filteredNav = (sidebar.navMain as NavMainItem[]).filter(
     (item) => !item.roles || (user && item.roles.includes(user.role))
   );
 

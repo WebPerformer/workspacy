@@ -122,7 +122,7 @@ export function PurchaseDrawer({
   return (
     <Drawer>
       <DrawerTrigger asChild>
-        <Button className="w-full">Obter Template</Button>
+        <Button className="w-full">Obter Website</Button>
       </DrawerTrigger>
 
       <DrawerContent>

@@ -13,6 +13,7 @@ import {
   SquareUserRound,
   Trash,
   User,
+  Captions,
 } from "lucide-react";
 
 // UI components and forms
@@ -251,12 +252,21 @@ function LoggedUser() {
                   Redefinir senha
                 </DropdownMenuItem>
               </DialogTrigger>
-              <DialogTrigger asChild>
+              <Link
+                href="/dashboard/manage-subscription"
+                onClick={() => isMobile && toggleSidebar()}
+              >
+                <DropdownMenuItem>
+                  <Captions />
+                  Gerenciar assinatura
+                </DropdownMenuItem>
+              </Link>
+              {/* <DialogTrigger asChild>
                 <DropdownMenuItem onClick={() => setActiveDialog("delete")}>
                   <Trash />
                   Excluir conta
                 </DropdownMenuItem>
-              </DialogTrigger>
+              </DialogTrigger> */}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>

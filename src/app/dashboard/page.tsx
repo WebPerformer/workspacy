@@ -10,7 +10,7 @@ export default function AppIntroduction() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Sparkle size={16} />
-          <h3 className="text-lg font-medium line-clamp-1">Novos Templates</h3>
+          <h3 className="text-lg font-medium line-clamp-1">Novos Websites</h3>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="icon" className="swiper-button-prev">
