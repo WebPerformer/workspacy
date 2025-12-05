@@ -65,6 +65,8 @@ export async function createSubscription(data: {
       success: result.success,
       subscription_id: result.subscription_id,
       status: result.status,
+      payment_pending: result.payment_pending || false,
+      payment_intent_status: result.payment_intent_status || null,
     };
   } catch (error) {
     return { success: false, error: "Network error" };

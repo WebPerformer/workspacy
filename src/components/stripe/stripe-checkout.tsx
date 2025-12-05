@@ -108,7 +108,17 @@ export function StripeCheckout({
         });
 
         if (result.success) {
-          onSuccess();
+          // Se o pagamento está pendente, redirecionar com parâmetros
+          if (result.payment_pending) {
+            const params = new URLSearchParams();
+            params.set("payment_pending", "true");
+            params.set("status", result.status || "incomplete");
+            const successUrl = `/dashboard/success?${params.toString()}`;
+            window.location.href = successUrl;
+          } else {
+            // Se o pagamento foi confirmado, usar o callback normal
+            onSuccess();
+          }
         } else {
           setError(result.error || "Erro ao criar assinatura");
         }

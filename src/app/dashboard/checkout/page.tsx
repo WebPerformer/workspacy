@@ -85,7 +85,7 @@ export default function CheckoutPage() {
         mode={mode}
         amount={amount}
         onSuccess={() => router.push("/dashboard/success")}
-        onCancel={() => router.push("/dashboard/cancel")}
+        onCancel={() => router.push("/dashboard")}
       />
     </section>
   );
