@@ -190,6 +190,47 @@ export async function getUserConfig() {
   }
 }
 
+export async function checkUrlAvailability(
+  url: string
+): Promise<{ success: boolean; available?: boolean; error?: string }> {
+  try {
+    const token = (await cookies()).get("token")?.value;
+    if (!token) {
+      return { success: false, error: "Não autenticado" };
+    }
+
+    const response = await fetch(
+      `${process.env.EXTERNAL_API_URL}/user/config/check-url`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ url }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (response.ok) {
+      return {
+        success: true,
+        available: result.available,
+        error: result.available ? undefined : result.message,
+      };
+    } else {
+      return {
+        success: false,
+        error: result.error || "Erro ao verificar disponibilidade",
+      };
+    }
+  } catch (error) {
+    console.error("Erro ao verificar disponibilidade da URL:", error);
+    return { success: false, error: "Erro de conexão" };
+  }
+}
+
 export async function updateUserConfig(configData: {
   template_data?: UserConfigData;
   selected_template_id?: string;
@@ -349,6 +390,47 @@ export async function getUserBySlug(slug: string) {
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to fetch user",
+    };
+  }
+}
+
+export async function getAllUsers() {
+  try {
+    const token = (await cookies()).get("token")?.value;
+    if (!token) {
+      return { success: false, data: [], error: "Não autenticado" };
+    }
+
+    const response = await fetch(`${process.env.EXTERNAL_API_URL}/users`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        data: [],
+        error: errorData.error || "Erro ao buscar usuários",
+      };
+    }
+
+    const result = await response.json();
+
+    return {
+      success: true,
+      data: result.data || [],
+    };
+  } catch (error) {
+    console.error("Erro ao buscar usuários:", error);
+    return {
+      success: false,
+      data: [],
+      error: error instanceof Error ? error.message : "Erro de conexão",
     };
   }
 }

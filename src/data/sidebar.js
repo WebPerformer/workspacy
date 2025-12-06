@@ -8,12 +8,12 @@ export const sidebar = {
       icon: LayoutDashboard,
       roles: undefined,
     },
-    // {
-    //   label: "Meus Clientes",
-    //   href: "/dashboard/customers",
-    //   icon: Users,
-    //   roles: ["admin"],
-    // },
+    {
+      label: "Meus Clientes",
+      href: "/dashboard/customers",
+      icon: Users,
+      roles: ["admin"],
+    },
     {
       label: "Websites",
       href: "/dashboard/products-web",

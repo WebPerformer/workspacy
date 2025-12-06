@@ -13,12 +13,13 @@ import {
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/src/components/ui/radio-group";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { StripeProvider } from "../stripe/stripe-provider";
 import { useRouter } from "next/navigation";
 import { PurchaseDrawerProps } from "@/src/types/template";
 import Image from "next/image";
 import loadingSvg from "@/public/images/loading.svg";
+import { hasUsedTrialClient } from "@/src/lib/subscriptions-client";
 
 const tierLevels: Record<string, number> = {
   basic: 1,
@@ -34,8 +35,26 @@ export function PurchaseDrawer({
   const [showCheckout, setShowCheckout] = useState(false);
   const [clientSecret, setClientSecret] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [hasUsedTrialBefore, setHasUsedTrialBefore] = useState<boolean>(false);
+  const [loadingTrialCheck, setLoadingTrialCheck] = useState(true);
 
   const router = useRouter();
+
+  useEffect(() => {
+    const checkTrial = async () => {
+      try {
+        const result = await hasUsedTrialClient();
+        if (result.success) {
+          setHasUsedTrialBefore(result.has_used_trial);
+        }
+      } catch (error) {
+        console.error("Erro ao verificar trial:", error);
+      } finally {
+        setLoadingTrialCheck(false);
+      }
+    };
+    checkTrial();
+  }, []);
 
   const availableSubscriptions = subscriptionTemplates.filter(
     (subscription) => {
@@ -90,11 +109,23 @@ export function PurchaseDrawer({
           : subscriptionTemplates.find((sub) => sub.id === selectedOption)
               ?.price.unit_amount;
 
-      router.push(
-        `/dashboard/checkout?price_id=${priceIdToUse}&product_id=${productIdToUse}&mode=${
-          selectedOption === "one_time" ? "payment" : "subscription"
-        }&amount=${amount}`
+      const selectedSubscription = subscriptionTemplates.find(
+        (sub) => sub.id === selectedOption
       );
+      const tier = selectedSubscription?.metadata.tier;
+
+      const params = new URLSearchParams({
+        price_id: priceIdToUse || "",
+        product_id: productIdToUse,
+        mode: selectedOption === "one_time" ? "payment" : "subscription",
+        amount: amount?.toString() || "0",
+      });
+
+      if (tier) {
+        params.set("tier", tier);
+      }
+
+      router.push(`/dashboard/checkout?${params.toString()}`);
     } catch (error) {
       console.error("Error preparing checkout:", error);
     } finally {
@@ -211,42 +242,73 @@ export function PurchaseDrawer({
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <div>
-                              <h4 className="font-medium">
-                                {subscription.name}
-                              </h4>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-medium">
+                                  {subscription.name}
+                                </h4>
+                                {subscription.metadata.tier === "basic" &&
+                                  !hasUsedTrialBefore &&
+                                  !loadingTrialCheck && (
+                                    <Badge
+                                      variant="default"
+                                      className="bg-green-500 hover:bg-green-600 text-white text-[10px] px-1.5 py-0"
+                                    >
+                                      14 dias grátis
+                                    </Badge>
+                                  )}
+                              </div>
                               <p className="text-xs text-muted-foreground">
                                 {subscription.metadata.category}
                               </p>
                             </div>
-                            <Badge variant="secondary">
-                              {(
-                                subscription.price.unit_amount / 100
-                              ).toLocaleString("pt-BR", {
-                                style: "currency",
-                                currency: "BRL",
-                              })}
-                              {subscription.price.recurring?.interval ===
-                                "month" && "/mês"}
-                            </Badge>
+                            <div className="flex flex-col items-end gap-1">
+                              <Badge variant="secondary">
+                                {(
+                                  subscription.price.unit_amount / 100
+                                ).toLocaleString("pt-BR", {
+                                  style: "currency",
+                                  currency: "BRL",
+                                })}
+                                {subscription.price.recurring?.interval ===
+                                  "month" && "/mês"}
+                              </Badge>
+                              {subscription.metadata.tier === "basic" &&
+                                !hasUsedTrialBefore &&
+                                !loadingTrialCheck && (
+                                  <p className="text-[10px] text-muted-foreground">
+                                    Após avaliação
+                                  </p>
+                                )}
+                            </div>
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="w-4 h-4 flex-shrink-0" />
-                        <ul className="text-xs text-muted-foreground space-y-1 mt-2">
-                          {Object.entries(subscription.metadata)
-                            .filter(
-                              ([key, value]) =>
-                                key.startsWith("advantages_") &&
-                                typeof value === "string"
-                            )
-                            .map(([key, value]) => (
-                              <li key={key}>
-                                <span className="text-green-400">✓</span>{" "}
-                                {value as string}
-                              </li>
-                            ))}
-                        </ul>
+                        <div className="flex-1">
+                          <ul className="text-xs text-muted-foreground space-y-1 mt-2">
+                            {subscription.metadata.tier === "basic" &&
+                              !hasUsedTrialBefore &&
+                              !loadingTrialCheck && (
+                                <li className="text-green-500 font-medium">
+                                  <span className="text-green-400">✓</span>{" "}
+                                  14 dias de avaliação gratuita
+                                </li>
+                              )}
+                            {Object.entries(subscription.metadata)
+                              .filter(
+                                ([key, value]) =>
+                                  key.startsWith("advantages_") &&
+                                  typeof value === "string"
+                              )
+                              .map(([key, value]) => (
+                                <li key={key}>
+                                  <span className="text-green-400">✓</span>{" "}
+                                  {value as string}
+                                </li>
+                              ))}
+                          </ul>
+                        </div>
                       </div>
                     </div>
                   </label>

@@ -31,6 +31,7 @@ import {
   deleteCategoryConfig,
   getUserConfig,
   updateUserConfig,
+  checkUrlAvailability,
 } from "@/src/lib/user";
 import Image from "next/image";
 import { UserConfigCategory } from "@/src/types/user";
@@ -78,6 +79,9 @@ export default function TemplateSetup() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] =
     useState<UserConfigCategory | null>(null);
+  const [urlChecking, setUrlChecking] = useState(false);
+  const [urlAvailable, setUrlAvailable] = useState<boolean | null>(null);
+  const [currentUrl, setCurrentUrl] = useState<string>("");
   const router = useRouter();
 
   const userId = user?.id?.toString() || "";
@@ -91,8 +95,11 @@ export default function TemplateSetup() {
           if (userConfig && userConfig.template_data) {
             const templateData = userConfig.template_data;
 
+            const currentUrlValue = templateData.url || "";
+            setCurrentUrl(currentUrlValue);
+
             form.reset({
-              url: templateData.url || "",
+              url: currentUrlValue,
               description: templateData.description || "",
               instagram: templateData.instagram || "",
               twitter: templateData.twitter || "",
@@ -131,7 +138,47 @@ export default function TemplateSetup() {
       twitter: "",
       whatsapp: "",
     },
+    mode: "onChange",
   });
+
+  // Verificar disponibilidade da URL em tempo real
+  const handleUrlChange = async (url: string) => {
+    if (!url || url.length < 3) {
+      setUrlAvailable(null);
+      setUrlChecking(false);
+      return;
+    }
+
+    // Validar formato primeiro
+    if (!/^[a-z0-9-]+$/.test(url)) {
+      setUrlAvailable(null);
+      setUrlChecking(false);
+      return;
+    }
+
+    // Se for a URL atual do usuário, considerar como disponível
+    if (url === currentUrl) {
+      setUrlAvailable(true);
+      setUrlChecking(false);
+      form.clearErrors("url");
+      return;
+    }
+
+    setUrlChecking(true);
+    try {
+      const result = await checkUrlAvailability(url);
+      setUrlAvailable(result.success ? result.available || false : null);
+      
+      // Limpar erro do formulário se a URL estiver disponível
+      if (result.success && result.available === true) {
+        form.clearErrors("url");
+      }
+    } catch (error) {
+      setUrlAvailable(null);
+    } finally {
+      setUrlChecking(false);
+    }
+  };
 
   // Abrir modal para nova categoria
   const openNewCategoryModal = () => {
@@ -187,6 +234,20 @@ export default function TemplateSetup() {
     setLoading(true);
 
     try {
+      // Verificar disponibilidade da URL antes de salvar (só se mudou)
+      if (data.url !== currentUrl) {
+        const urlCheck = await checkUrlAvailability(data.url);
+        if (!urlCheck.success || urlCheck.available !== true) {
+          form.setError("url", {
+            type: "manual",
+            message: "Esta URL já está em uso. Escolha outra.",
+          });
+          setUrlAvailable(false);
+          setLoading(false);
+          return;
+        }
+      }
+
       // Buscar configuração atual para manter as categorias existentes
       const userConfig = await getUserConfig();
       const currentTemplateData = userConfig?.template_data || {};
@@ -256,19 +317,45 @@ export default function TemplateSetup() {
                         type="text"
                         placeholder="Ex: meu-template"
                         {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          handleUrlChange(e.target.value);
+                        }}
                         className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-0 h-auto"
                       />
                     </FormControl>
-                    <Check
-                      size={16}
-                      className={`absolute right-3 ${
-                        field.value && !form.formState.errors.url
-                          ? "text-green-500"
-                          : "text-muted-foreground"
-                      }`}
-                    />
+                    {urlChecking ? (
+                      <div className="absolute right-3 w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Check
+                        size={16}
+                        className={`absolute right-3 ${
+                          field.value &&
+                          !form.formState.errors.url &&
+                          urlAvailable === true
+                            ? "text-green-500"
+                            : urlAvailable === false
+                            ? "text-destructive"
+                            : "text-muted-foreground"
+                        }`}
+                      />
+                    )}
                   </div>
                   <FormMessage className="text-xs" />
+                  {field.value &&
+                    !form.formState.errors.url &&
+                    urlAvailable === false && (
+                      <p className="text-xs text-destructive mt-1">
+                        Esta URL já está em uso. Escolha outra.
+                      </p>
+                    )}
+                  {field.value &&
+                    !form.formState.errors.url &&
+                    urlAvailable === true && (
+                      <p className="text-xs text-green-600 mt-1">
+                        URL disponível
+                      </p>
+                    )}
                 </FormItem>
               )}
             />

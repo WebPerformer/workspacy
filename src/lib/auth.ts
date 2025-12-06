@@ -117,7 +117,7 @@ export async function signOutRequest() {
 export async function forgotPasswordRequest({ email }: ForgotPasswordData) {
   try {
     const response = await fetch(
-      `${process.env.EXTERNAL_API_URL}/forgot-password`,
+      `${process.env.EXTERNAL_API_URL}/auth/forgot-password`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

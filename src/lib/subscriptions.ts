@@ -139,3 +139,34 @@ export async function updatePaymentMethod(payment_method_id: string) {
     };
   }
 }
+
+export async function hasUsedTrial() {
+  try {
+    const token = (await cookies()).get("token")?.value;
+    const response = await fetch(
+      `${process.env.EXTERNAL_API_URL}/subscriptions/has-used-trial`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    if (!response.ok) {
+      // Se der erro, assumir que não usou (para não bloquear usuários)
+      return { success: true, has_used_trial: false };
+    }
+    const result = await response.json();
+    return {
+      success: result.success,
+      has_used_trial: result.has_used_trial || false,
+    };
+  } catch (error) {
+    // Em caso de erro, assumir que não usou (para não bloquear usuários)
+    return {
+      success: true,
+      has_used_trial: false,
+    };
+  }
+}

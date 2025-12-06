@@ -21,6 +21,7 @@ export function StripeProvider({
   priceId,
   mode,
   amount,
+  tier,
   onSuccess,
   onCancel,
 }: StripeProviderProps) {
@@ -65,6 +66,7 @@ export function StripeProvider({
         priceId={priceId}
         mode={mode}
         amount={amount}
+        tier={tier}
         onSuccess={onSuccess}
         onCancel={onCancel}
       />

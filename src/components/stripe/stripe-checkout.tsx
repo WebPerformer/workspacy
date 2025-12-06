@@ -1,20 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   useStripe,
   useElements,
   PaymentElement,
 } from "@stripe/react-stripe-js";
 import { Button } from "@/src/components/ui/button";
+import { Badge } from "@/src/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import { createSubscription } from "@/src/lib/payment";
 import { StripeCheckoutProps } from "@/src/types/stripe";
+import { hasUsedTrialClient } from "@/src/lib/subscriptions-client";
 
 export function StripeCheckout({
   priceId,
   mode,
   amount,
+  tier,
   onSuccess,
   onCancel,
 }: StripeCheckoutProps) {
@@ -22,6 +25,29 @@ export function StripeCheckout({
   const elements = useElements();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasUsedTrialBefore, setHasUsedTrialBefore] = useState<boolean>(false);
+  const [loadingTrialCheck, setLoadingTrialCheck] = useState(true);
+
+  useEffect(() => {
+    const checkTrial = async () => {
+      // Só verificar se for assinatura básica
+      if (mode === "subscription" && tier === "basic") {
+        try {
+          const result = await hasUsedTrialClient();
+          if (result.success) {
+            setHasUsedTrialBefore(result.has_used_trial);
+          }
+        } catch (error) {
+          console.error("Erro ao verificar trial:", error);
+        } finally {
+          setLoadingTrialCheck(false);
+        }
+      } else {
+        setLoadingTrialCheck(false);
+      }
+    };
+    checkTrial();
+  }, [mode, tier]);
 
   if (!stripe || !elements) {
     return (
@@ -147,16 +173,51 @@ export function StripeCheckout({
       </div>
 
       <div className="mb-4 p-4 bg-card rounded-lg">
-        <p className="font-semibold">
-          Total:{" "}
-          {(amount / 100).toLocaleString("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-          })}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          {mode === "subscription" ? "Assinatura mensal" : "Comprar Template"}
-        </p>
+        {mode === "subscription" &&
+        tier === "basic" &&
+        !hasUsedTrialBefore &&
+        !loadingTrialCheck ? (
+          <>
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <p className="font-semibold text-lg text-green-500">
+                  Grátis por 14 dias
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Depois: {(amount / 100).toLocaleString("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  })}/mês
+                </p>
+              </div>
+              <Badge className="bg-green-500 hover:bg-green-600 text-white">
+                14 dias grátis
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Assinatura mensal • Período de avaliação gratuito
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              A cobrança será iniciada automaticamente após 14 dias
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="font-semibold">
+              Total:{" "}
+              {(amount / 100).toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              })}
+              {mode === "subscription" && (
+                <span className="text-muted-foreground font-normal">/mês</span>
+              )}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {mode === "subscription" ? "Assinatura mensal" : "Comprar Template"}
+            </p>
+          </>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -187,6 +248,11 @@ export function StripeCheckout({
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Processando...
               </>
+            ) : mode === "subscription" &&
+              tier === "basic" &&
+              !hasUsedTrialBefore &&
+              !loadingTrialCheck ? (
+              "Iniciar avaliação grátis"
             ) : (
               `Pagar ${(amount / 100).toLocaleString("pt-BR", {
                 style: "currency",

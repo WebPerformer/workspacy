@@ -39,13 +39,7 @@ export default async function PublicTemplatePage({ params }: PageProps) {
       );
     }
 
-    const userConfig = await getUserConfig();
-
-    if (
-      !userData?.success ||
-      !userData.data ||
-      userConfig?.selected_template_id !== "prod_TNO1FXLzk6I0sL"
-    ) {
+    if (!userData?.success || !userData.data) {
       notFound();
     }
 

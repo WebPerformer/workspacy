@@ -15,6 +15,7 @@ export default function CheckoutPage() {
   const productId = searchParams.get("product_id");
   const mode = searchParams.get("mode") as "payment" | "subscription";
   const amountParam = searchParams.get("amount");
+  const tier = searchParams.get("tier");
 
   const [clientSecret, setClientSecret] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -84,6 +85,7 @@ export default function CheckoutPage() {
         priceId={priceId}
         mode={mode}
         amount={amount}
+        tier={tier || undefined}
         onSuccess={() => router.push("/dashboard/success")}
         onCancel={() => router.push("/dashboard")}
       />
