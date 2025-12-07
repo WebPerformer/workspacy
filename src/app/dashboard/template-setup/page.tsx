@@ -24,6 +24,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/src/components/ui/form";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/src/components/ui/dialog";
 
 // Componente do Dialog
 import { CategoryDialog } from "@/src/components/templates/templates-category-dialog";
@@ -82,6 +90,9 @@ export default function TemplateSetup() {
   const [urlChecking, setUrlChecking] = useState(false);
   const [urlAvailable, setUrlAvailable] = useState<boolean | null>(null);
   const [currentUrl, setCurrentUrl] = useState<string>("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] =
+    useState<UserConfigCategory | null>(null);
   const router = useRouter();
 
   const userId = user?.id?.toString() || "";
@@ -168,7 +179,7 @@ export default function TemplateSetup() {
     try {
       const result = await checkUrlAvailability(url);
       setUrlAvailable(result.success ? result.available || false : null);
-      
+
       // Limpar erro do formulário se a URL estiver disponível
       if (result.success && result.available === true) {
         form.clearErrors("url");
@@ -205,27 +216,36 @@ export default function TemplateSetup() {
     }
   };
 
-  const handleDeleteCategory = async (categoryId: string) => {
+  const handleDeleteCategory = (categoryId: string) => {
     const category = categories.find((cat) => cat.id === categoryId);
     if (!category) return;
 
-    if (
-      !confirm(`Tem certeza que deseja remover o catálogo "${category.name}"?`)
-    ) {
-      return;
-    }
+    setCategoryToDelete(category);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteCategory = async () => {
+    if (!categoryToDelete) return;
 
     setLoading(true);
+    setDeleteDialogOpen(false);
 
     // Passe o userId como segundo parâmetro
-    const { success, data } = await deleteCategoryConfig(category, userId);
+    const { success, data } = await deleteCategoryConfig(
+      categoryToDelete,
+      userId
+    );
 
     if (success) {
-      setCategories((prev) => prev.filter((cat) => cat.id !== categoryId));
-      toast.success(`Catálogo "${category.name}" removido!`);
+      setCategories((prev) =>
+        prev.filter((cat) => cat.id !== categoryToDelete.id)
+      );
+      toast.success(`Catálogo "${categoryToDelete.name}" removido!`);
     } else {
       toast.error(data.message || "Erro ao remover catálogo");
     }
+
+    setCategoryToDelete(null);
     setLoading(false);
   };
 
@@ -584,6 +604,38 @@ export default function TemplateSetup() {
           </div>
         </form>
       </Form>
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja remover o catálogo "
+              {categoryToDelete?.name}"? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setCategoryToDelete(null);
+              }}
+              disabled={loading}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteCategory}
+              disabled={loading}
+            >
+              {loading ? "Removendo..." : "Remover"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

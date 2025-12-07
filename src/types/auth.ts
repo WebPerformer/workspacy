@@ -3,6 +3,7 @@ import { User } from "./user";
 export type AuthContextType = {
   user: User | null;
   setUser: (user: User | null) => void;
+  isLoading: boolean;
 };
 
 export type SigninData = {

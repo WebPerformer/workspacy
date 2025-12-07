@@ -178,27 +178,25 @@ export function StripeCheckout({
         !hasUsedTrialBefore &&
         !loadingTrialCheck ? (
           <>
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <p className="font-semibold text-lg text-green-500">
-                  Grátis por 14 dias
-                </p>
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex flex-col gap-1">
+                <p className="text-base font-medium">Grátis por 14 dias</p>
                 <p className="text-xs text-muted-foreground">
-                  Depois: {(amount / 100).toLocaleString("pt-BR", {
+                  Depois:{" "}
+                  {(amount / 100).toLocaleString("pt-BR", {
                     style: "currency",
                     currency: "BRL",
-                  })}/mês
+                  })}
+                  /mês
                 </p>
               </div>
-              <Badge className="bg-green-500 hover:bg-green-600 text-white">
+              <Badge className="bg-green-200 text-green-800 text-[10px] font-bold px-1.5 py-0 self-start">
                 14 dias grátis
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Assinatura mensal • Período de avaliação gratuito
-            </p>
+            <p className="text-sm font-medium">Assinatura mensal</p>
             <p className="text-xs text-muted-foreground mt-1">
-              A cobrança será iniciada automaticamente após 14 dias
+              A cobrança será iniciada automaticamente após 14 dias.
             </p>
           </>
         ) : (
@@ -214,7 +212,9 @@ export function StripeCheckout({
               )}
             </p>
             <p className="text-sm text-muted-foreground">
-              {mode === "subscription" ? "Assinatura mensal" : "Comprar Template"}
+              {mode === "subscription"
+                ? "Assinatura mensal"
+                : "Comprar Template"}
             </p>
           </>
         )}

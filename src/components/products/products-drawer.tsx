@@ -251,7 +251,7 @@ export function PurchaseDrawer({
                                   !loadingTrialCheck && (
                                     <Badge
                                       variant="default"
-                                      className="bg-green-500 hover:bg-green-600 text-white text-[10px] px-1.5 py-0"
+                                      className="bg-green-200 text-green-800 text-[10px] font-bold px-1.5 py-0"
                                     >
                                       14 dias grátis
                                     </Badge>
@@ -290,9 +290,9 @@ export function PurchaseDrawer({
                             {subscription.metadata.tier === "basic" &&
                               !hasUsedTrialBefore &&
                               !loadingTrialCheck && (
-                                <li className="text-green-500 font-medium">
-                                  <span className="text-green-400">✓</span>{" "}
-                                  14 dias de avaliação gratuita
+                                <li>
+                                  <span className="text-green-400">✓</span> 14
+                                  dias de avaliação gratuita
                                 </li>
                               )}
                             {Object.entries(subscription.metadata)

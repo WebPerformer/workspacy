@@ -22,9 +22,11 @@ import {
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
+  SidebarMenuSkeleton,
   SidebarTrigger,
   useSidebar,
 } from "@/src/components/ui/sidebar";
+import { Skeleton } from "@/src/components/ui/skeleton";
 import LoggedUser from "@/src/components/sidebar/logged-user";
 
 // Static assets
@@ -43,7 +45,7 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { isMobile, toggleSidebar } = useSidebar();
 
-  const { user } = useContext(AuthContext);
+  const { user, isLoading } = useContext(AuthContext);
 
   const filteredNav = (sidebar.navMain as NavMainItem[]).filter(
     (item) => !item.roles || (user && item.roles.includes(user.role))
@@ -68,7 +70,15 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          {user ? (
+          {isLoading ? (
+            <div className="flex items-center gap-2 p-1">
+              <Skeleton className="w-9 h-9 rounded-lg" />
+              <div className="flex-1 space-y-1">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-40" />
+              </div>
+            </div>
+          ) : user ? (
             <LoggedUser />
           ) : (
             <Link
@@ -80,36 +90,48 @@ export function AppSidebar() {
             </Link>
           )}
         </SidebarGroup>
-        {user && (
+        {isLoading ? (
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                {filteredNav.map((item) => (
-                  <SidebarMenuButton
-                    key={item.label}
-                    variant={pathname === item.href ? "outline" : "default"}
-                    asChild
-                  >
-                    <Link
-                      href={item.href}
-                      onClick={() => isMobile && toggleSidebar()}
-                      className="relative"
-                    >
-                      <div
-                        className={
-                          pathname === item.href
-                            ? "absolute left-0 w-[3px] h-5 bg-primary rounded-full"
-                            : "hidden"
-                        }
-                      />
-                      <item.icon />
-                      {item.label}
-                    </Link>
-                  </SidebarMenuButton>
+                {[1, 2, 3, 4].map((i) => (
+                  <SidebarMenuSkeleton key={i} showIcon />
                 ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+        ) : (
+          user && (
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {filteredNav.map((item) => (
+                    <SidebarMenuButton
+                      key={item.label}
+                      variant={pathname === item.href ? "outline" : "default"}
+                      asChild
+                    >
+                      <Link
+                        href={item.href}
+                        onClick={() => isMobile && toggleSidebar()}
+                        className="relative"
+                      >
+                        <div
+                          className={
+                            pathname === item.href
+                              ? "absolute left-0 w-[3px] h-5 bg-primary rounded-full"
+                              : "hidden"
+                          }
+                        />
+                        <item.icon />
+                        {item.label}
+                      </Link>
+                    </SidebarMenuButton>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )
         )}
       </SidebarContent>
       <SidebarFooter />

@@ -13,6 +13,14 @@ import PaymentMethodDrawer from "@/src/components/subscription/payment-method-dr
 import { ActiveSubscription } from "@/src/types/subscriptions";
 import { cancelSubscription } from "@/src/lib/subscriptions";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/src/components/ui/dialog";
 
 export default function Page() {
   const [activeSubscription, setActiveSubscription] =
@@ -23,6 +31,8 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [showChangeSubscription, setShowChangeSubscription] = useState(false);
   const [showPaymentMethodDrawer, setShowPaymentMethodDrawer] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   const refreshSubscriptionData = async () => {
     try {
@@ -107,16 +117,23 @@ export default function Page() {
     });
   };
 
-  const handleCancelSubscription = async () => {
-    if (confirm("Tem certeza que deseja cancelar sua assinatura?")) {
-      const result = await cancelSubscription();
-      if (result.success) {
-        toast.success("Assinatura cancelada com sucesso!");
-        refreshSubscriptionData();
-      } else {
-        toast.error(result.error || "Erro ao cancelar assinatura");
-      }
+  const handleCancelSubscription = () => {
+    setShowCancelDialog(true);
+  };
+
+  const confirmCancelSubscription = async () => {
+    setCancelling(true);
+    setShowCancelDialog(false);
+
+    const result = await cancelSubscription();
+    if (result.success) {
+      toast.success("Assinatura cancelada com sucesso!");
+      refreshSubscriptionData();
+    } else {
+      toast.error(result.error || "Erro ao cancelar assinatura");
     }
+
+    setCancelling(false);
   };
 
   return (
@@ -289,6 +306,35 @@ export default function Page() {
         onOpenChange={setShowPaymentMethodDrawer}
         onPaymentMethodUpdated={refreshSubscriptionData}
       />
+
+      {/* Dialog de Confirmação de Cancelamento */}
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancelar Assinatura</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja cancelar sua assinatura? Esta ação não pode
+              ser desfeita e você perderá acesso aos recursos do plano atual.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="secondary"
+              onClick={() => setShowCancelDialog(false)}
+              disabled={cancelling}
+            >
+              Não, manter assinatura
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmCancelSubscription}
+              disabled={cancelling}
+            >
+              {cancelling ? "Cancelando..." : "Sim, cancelar assinatura"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
